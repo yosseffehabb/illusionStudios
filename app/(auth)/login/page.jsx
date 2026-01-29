@@ -1,5 +1,8 @@
 import LoginForm from "@/components/LoginForm";
 
+// Force dynamic rendering to avoid prerender issues with Supabase client
+export const dynamic = 'force-dynamic';
+
 function Page() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">

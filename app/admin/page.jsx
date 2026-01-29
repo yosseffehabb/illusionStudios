@@ -14,6 +14,9 @@ import AdminOrdersTable from "@/components/AdminOrdersTable";
 import SkeletonAdminOrdersTable from "@/components/SkeletonAdminOrdersTable";
 import SkeletonAdminOrderStats from "@/components/SkeletonAdminOrderStats";
 
+// Force dynamic rendering since we use cookies for auth
+export const dynamic = 'force-dynamic';
+
 async function OrdersContent() {
   const queryClient = new QueryClient({
     defaultOptions: {

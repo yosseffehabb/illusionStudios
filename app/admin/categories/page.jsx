@@ -9,6 +9,9 @@ import { categoryKeys } from "@/lib/categoryKeys";
 import SkeletonAdminCategoriesSection from "@/components/SkeletonAdminCategoriesSection";
 import AdminCategoriesSection from "@/components/AdminCategoriesSection";
 
+// Force dynamic rendering since we use cookies for auth
+export const dynamic = 'force-dynamic';
+
 async function CategoriesContent() {
   const queryClient = new QueryClient({
     defaultOptions: {
