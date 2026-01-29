@@ -11,6 +11,8 @@ import {
 import { orderKeys } from "@/lib/orderKeys";
 import AdminOrderStats from "@/components/AdminOrderStats";
 import AdminOrdersTable from "@/components/AdminOrdersTable";
+import SkeletonAdminOrdersTable from "@/components/SkeletonAdminOrdersTable";
+import SkeletonAdminOrderStats from "@/components/SkeletonAdminOrderStats";
 
 async function OrdersContent() {
   const queryClient = new QueryClient({
@@ -78,27 +80,9 @@ export default function AdminOrdersPage() {
         fallback={
           <>
             {/* Stats Skeleton */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="bg-gray-50 border rounded-lg p-4">
-                  <div className="h-5 w-5 bg-gray-200 rounded animate-pulse mb-2" />
-                  <div className="h-8 w-12 bg-gray-200 rounded animate-pulse mb-2" />
-                  <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
+           <SkeletonAdminOrderStats/>
             {/* Table Skeleton */}
-            <div className="border rounded-lg p-8">
-              <div className="h-10 bg-gray-200 rounded animate-pulse mb-4" />
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="h-16 bg-gray-100 rounded animate-pulse"
-                  />
-                ))}
-              </div>
-            </div>
+            <SkeletonAdminOrdersTable/>
           </>
         }
       >
