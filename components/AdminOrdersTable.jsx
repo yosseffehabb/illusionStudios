@@ -74,7 +74,7 @@ export default function AdminOrdersTable() {
         root: null,
         rootMargin: PAGINATION.INFINITE_SCROLL_THRESHOLD,
         threshold: 0.1,
-      }
+      },
     );
 
     const currentRef = tableEndRef.current;
@@ -235,7 +235,7 @@ export default function AdminOrdersTable() {
                       <td className="px-4 py-3 text-sm">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
-                            order.status
+                            order.status,
                           )}`}
                         >
                           {formatStatus(order.status)}
@@ -325,7 +325,7 @@ export default function AdminOrdersTable() {
                   </div>
                   <span
                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${getStatusColor(
-                      order.status
+                      order.status,
                     )}`}
                   >
                     {formatStatus(order.status)}

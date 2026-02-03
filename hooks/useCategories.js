@@ -1,32 +1,22 @@
 "use client";
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   getCategoriesWithCounts,
   addCategory,
   deleteCategory,
 } from "@/services/apiCategories";
-import toast from "react-hot-toast";
 
-/* ================================
-   Query Keys
-================================ */
-const categoryKeys = {
-  all: ["categories"],
-  list: () => ["categories", "list"],
-};
+import toast from "react-hot-toast";
+import { CategoryKeys } from "@/lib/categoryKeys";
 
 /* ================================
    Get Categories
 ================================ */
 export function useCategories(options = {}) {
   return useQuery({
-    queryKey: categoryKeys.list(),
+    queryKey: CategoryKeys.list(),
     queryFn: async () => {
       const result = await getCategoriesWithCounts();
 
@@ -43,7 +33,7 @@ export function useCategories(options = {}) {
 }
 
 /* ================================
-   Add Category
+   Add Category (with Optimistic Update)
 ================================ */
 export function useAddCategory() {
   const queryClient = useQueryClient();
@@ -59,24 +49,49 @@ export function useAddCategory() {
       return result.category;
     },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      toast.success("category is added successfully")
+    onMutate: async (newCategory) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: CategoryKeys.list() });
+
+      // Snapshot previous value
+      const previousCategories = queryClient.getQueryData(CategoryKeys.list());
+
+      // Optimistically update
+      queryClient.setQueryData(CategoryKeys.list(), (old) => {
+        const optimisticCategory = {
+          id: `temp-${Date.now()}`,
+          name: newCategory.name,
+          slug: newCategory.slug,
+          productCount: 0,
+        };
+
+        return [...(old || []), optimisticCategory];
+      });
+
+      return { previousCategories };
     },
-    onError: (_error, _id, context) => {
-        if (context?.previousCategories) {
-          queryClient.setQueryData(
-            categoryKeys.list(),
-            context.previousCategories
-          );
-        }
-        toast.error("there is an error adding category")
-      },
+
+    onError: (error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousCategories) {
+        queryClient.setQueryData(
+          CategoryKeys.list(),
+          context.previousCategories,
+        );
+      }
+      toast.error(error?.message || "Error adding category");
+    },
+
+    onSuccess: () => {
+      // Refetch to get real server data
+      queryClient.invalidateQueries({ queryKey: CategoryKeys.all });
+      toast.success("Category added successfully");
+    },
   });
 }
 
 /* ================================
-   Delete Category
+   Delete Category (with Optimistic Update)
 ================================ */
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
@@ -93,31 +108,34 @@ export function useDeleteCategory() {
     },
 
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: categoryKeys.list() });
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: CategoryKeys.list() });
 
-      const previousCategories =
-        queryClient.getQueryData(categoryKeys.list());
+      // Snapshot previous value
+      const previousCategories = queryClient.getQueryData(CategoryKeys.list());
 
-      queryClient.setQueryData(categoryKeys.list(), (old) =>
-        old?.filter((cat) => cat.id !== id)
+      // Optimistically remove from cache
+      queryClient.setQueryData(CategoryKeys.list(), (old) =>
+        old?.filter((cat) => cat.id !== id),
       );
 
       return { previousCategories };
     },
 
-    onError: (_error, _id, context) => {
+    onError: (error, _id, context) => {
+      // Rollback on error
       if (context?.previousCategories) {
         queryClient.setQueryData(
-          categoryKeys.list(),
-          context.previousCategories
+          CategoryKeys.list(),
+          context.previousCategories,
         );
       }
-      toast.error("there is an error deleting category")
+      toast.error(error?.message || "Error deleting category");
     },
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      toast.success("category is deleted successfully")
+      queryClient.invalidateQueries({ queryKey: CategoryKeys.all });
+      toast.success("Category deleted successfully");
     },
   });
 }

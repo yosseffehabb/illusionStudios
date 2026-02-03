@@ -5,12 +5,12 @@ import {
   dehydrate,
 } from "@tanstack/react-query";
 import { getCategoriesWithCounts } from "@/services/apiCategories";
-import { categoryKeys } from "@/lib/categoryKeys"; 
+import { CategoryKeys } from "@/lib/categoryKeys";
 import SkeletonAdminCategoriesSection from "@/components/SkeletonAdminCategoriesSection";
 import AdminCategoriesSection from "@/components/AdminCategoriesSection";
 
 // Force dynamic rendering since we use cookies for auth
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 async function CategoriesContent() {
   const queryClient = new QueryClient({
@@ -24,7 +24,7 @@ async function CategoriesContent() {
   try {
     // Prefetch categories with product counts
     await queryClient.prefetchQuery({
-      queryKey: categoryKeys.list(),
+      queryKey: CategoryKeys.list(),
       queryFn: async () => {
         const result = await getCategoriesWithCounts();
         if (result?.success) {
@@ -39,7 +39,7 @@ async function CategoriesContent() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-    <AdminCategoriesSection/>
+      <AdminCategoriesSection />
     </HydrationBoundary>
   );
 }
