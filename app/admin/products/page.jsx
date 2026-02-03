@@ -29,6 +29,7 @@ async function ProductsContent() {
       queryFn: async () => {
         const result = await getAllProducts();
         if (result?.success) {
+          console.log(result);
           return result.products;
         }
         throw new Error(result?.error || "Failed to fetch products");

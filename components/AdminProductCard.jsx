@@ -1,127 +1,161 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Cog } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Cog, Package } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function AdminProductCard({ product }) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+// ─── constants ───────────────────────────────────────────────────────────────
+const LOW_STOCK_PER_VARIANT = 2; // variant-level "low" threshold
+const LOW_STOCK_TOTAL = 5; // card-level "low" threshold
 
+export default function AdminProductCard({ product }) {
+  // ── image carousel state ─────────────────────────────────────────────────
+  const [imgIdx, setImgIdx] = useState(0);
   const images = product.images || [];
 
-  // Calculate total stock from variants
-  const totalStock =
-    product.variants?.reduce((acc, variant) => acc + variant.stock, 0) || 0;
+  const goTo = (i) => setImgIdx(i);
+  const prev = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setImgIdx((i) => (i === 0 ? images.length - 1 : i - 1));
+  };
+  const next = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setImgIdx((i) => (i === images.length - 1 ? 0 : i + 1));
+  };
 
-  // Check if product is low stock
-  const isLowStock = totalStock > 0 && totalStock <= 5;
+  // ── stock helpers ────────────────────────────────────────────────────────
+  const totalStock = product.variants?.reduce((s, v) => s + v.stock, 0) ?? 0;
   const isOutOfStock = totalStock === 0;
+  const isLowStock = totalStock > 0 && totalStock <= LOW_STOCK_TOTAL;
+  const isActive = product.status === "active";
 
-  const nextImage = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  // ── price helpers ────────────────────────────────────────────────────────
+  const hasDiscount = product.discount > 0;
+  const discountedPrice = hasDiscount
+    ? (product.price - (product.price * product.discount) / 100).toFixed(0)
+    : product.price;
+  const savings = hasDiscount
+    ? ((product.price * product.discount) / 100).toFixed(0)
+    : 0;
 
-  const prevImage = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
+  // ── max possible stock (for progress bar width) ─────────────────────────
+  const maxStock = (product.variants?.length ?? 1) * 15;
+  const stockPct = Math.min((totalStock / maxStock) * 100, 100);
+
+  // ── sorted variants (numeric sizes sorted numerically, else alpha) ──────
+  const sortedVariants = [...(product.variants || [])].sort((a, b) =>
+    product.size_type === "numeric"
+      ? Number(a.size) - Number(b.size)
+      : a.size.localeCompare(b.size),
+  );
+
+  // ── status colour helpers ────────────────────────────────────────────────
+  const stockBarColor = isOutOfStock
+    ? "var(--color-neutral-400)"
+    : isLowStock
+    ? "#c89030"
+    : "var(--color-primarygreen-300)";
+
+  const stockLabelColor = stockBarColor;
 
   return (
-    <div className="group bg-card rounded-lg overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 border border-border/50 flex flex-col">
-      {/* Image Container */}
-      <div className="relative w-full" style={{ aspectRatio: "1/1" }}>
+    <div className="group flex flex-col rounded-xl overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300">
+      {/* ════════════════════════════════════════════════════════════════════
+          IMAGE SECTION  — aspect 4:5 (1280 × 1600) — object-contain, no crop
+          ════════════════════════════════════════════════════════════════════ */}
+      <div className="relative w-full" style={{ aspectRatio: "4 / 5" }}>
+        {/* image or placeholder */}
         {images.length > 0 ? (
-          <div className="w-full h-full flex items-center justify-center p-2">
+          <div className="w-full h-full bg-primarygreen-900">
             <Image
-              className="object-contain w-full h-full rounded-2xl"
-              src={images[currentImageIndex]}
+              src={images[imgIdx]}
               alt={product.name}
-              width={400}
-              height={400}
-              style={{ maxWidth: "100%", maxHeight: "100%" }}
+              fill
+              sizes="(max-width 640px) 100vw, (max-width 1024px) 50vw, 25vw"
+              className="object-contain"
               loading="lazy"
               priority={false}
             />
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <span className="text-muted-foreground text-sm">No Image</span>
+          <div className="w-full h-full flex items-center justify-center bg-primarygreen-900/60">
+            <Package className="w-10 h-10 text-primarygreen-500/50" />
           </div>
         )}
 
-        {/* Discount Badge */}
-        {product.discount > 0 && (
-          <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 z-10">
-            <Badge className="text-[8px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 bg-red-700 text-white">
-              -{product.discount}%
-            </Badge>
-          </div>
+        {/* ── overlay badges row ─────────────────────────────────────────── */}
+
+        {/* Discount ribbon — top-left */}
+        {hasDiscount && (
+          <span
+            className="absolute top-3 left-3 z-10 bg-primarygreen-500 text-primarygreen-100 text-[10px] sm:text-xs font-bold tracking-wider px-2.5 py-1 rounded-r-md shadow-md"
+            style={{ borderLeft: "none" }}
+          >
+            -{product.discount}%
+          </span>
         )}
 
-        {/* Category Badge */}
-        <div className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3 z-10">
-          <Badge className="text-[8px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black text-white border-0">
-            {product.category?.name || "Uncategorized"}
-          </Badge>
-        </div>
+        {/* Category badge — top-right */}
+        <span className="absolute top-3 right-3 z-10 bg-primarygreen-900/80 backdrop-blur-sm border border-primarygreen-700/60 text-primarygreen-100 text-[9px] sm:text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-md">
+          {product.category?.name || "Uncategorised"}
+        </span>
 
-        {/* Stock Warning Badge */}
+        {/* Out-of-stock centre overlay */}
         {isOutOfStock && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-            <Badge className="bg-red-600 text-white text-xs px-3 py-1">
-              OUT OF STOCK
-            </Badge>
-          </div>
-        )}
-        {isLowStock && !isOutOfStock && (
-          <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 z-10">
-            <Badge className="bg-orange-500 text-white text-[8px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1">
-              Low Stock
-            </Badge>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-primarygreen-900/60 backdrop-blur-[2px]">
+            <span className="bg-neutral-900/90 border border-neutral-400/30 text-neutral-200 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full shadow-lg">
+              Out of Stock
+            </span>
           </div>
         )}
 
-        {/* Image Navigation */}
+        {/* Low-stock bottom-left tag (only when NOT out of stock) */}
+        {isLowStock && !isOutOfStock && (
+          <span className="absolute bottom-3 left-3 z-10 bg-amber-600/90 text-white text-[9px] sm:text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md shadow">
+            Low Stock
+          </span>
+        )}
+
+        {/* ── carousel arrows + dots ─────────────────────────────────────── */}
         {images.length > 1 && (
           <>
+            {/* prev */}
             <button
-              onClick={prevImage}
+              onClick={prev}
               aria-label="Previous image"
-              className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-background/90 backdrop-blur-sm p-1 sm:p-1.5 rounded-full transition-all hover:bg-background hover:scale-110 z-10"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-primarygreen-900/70 backdrop-blur-sm border border-primarygreen-700/40 text-primarygreen-100 rounded-full p-1 sm:p-1.5 hover:bg-primarygreen-700 transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
+            {/* next */}
             <button
-              onClick={nextImage}
+              onClick={next}
               aria-label="Next image"
-              className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-background/90 backdrop-blur-sm p-1 sm:p-1.5 rounded-full transition-all hover:bg-background hover:scale-110 z-10"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-primarygreen-900/70 backdrop-blur-sm border border-primarygreen-700/40 text-primarygreen-100 rounded-full p-1 sm:p-1.5 hover:bg-primarygreen-700 transition-colors"
             >
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <ChevronRight className="w-4 h-4" />
             </button>
 
-            {/* Image Dots */}
-            <div className="absolute bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-              {images.map((_, idx) => (
+            {/* dots */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+              {images.map((_, i) => (
                 <button
-                  key={idx}
+                  key={i}
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    setCurrentImageIndex(idx);
+                    goTo(i);
                   }}
-                  aria-label={`Go to image ${idx + 1}`}
+                  aria-label={`Go to image ${i + 1}`}
                   className={cn(
-                    "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all",
-                    idx === currentImageIndex
-                      ? "bg-primary w-3 sm:w-4"
-                      : "bg-background/60 hover:bg-background/80",
+                    "h-1.5 rounded-full transition-all duration-300",
+                    i === imgIdx
+                      ? "w-5 bg-primarygreen-300"
+                      : "w-1.5 bg-primarygreen-100/40 hover:bg-primarygreen-100/70",
                   )}
                 />
               ))}
@@ -130,70 +164,114 @@ export default function AdminProductCard({ product }) {
         )}
       </div>
 
-      {/* Content */}
-      <div className="p-2 sm:p-3 space-y-1 sm:space-y-2 grow">
-        {/* Product Name & Color */}
-        <div>
-          <h3 className="font-bold text-sm text-foreground line-clamp-2 leading-tight">
-            {product.name}
-          </h3>
-          {product.color && (
-            <p className="text-xs text-muted-foreground">{product.color}</p>
-          )}
+      {/* ════════════════════════════════════════════════════════════════════
+          BODY
+          ════════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col flex-1 p-3 sm:p-4 gap-3">
+        {/* ── name / color / price row ─────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm text-neutral-50 leading-tight truncate">
+              {product.name}
+            </h3>
+            {product.color && (
+              <p className="text-[11px] text-primarygreen-300/70 mt-0.5">
+                {product.color}
+              </p>
+            )}
+          </div>
+
+          {/* price block */}
+          <div className="flex flex-col items-end shrink-0">
+            <span className="text-sm font-bold text-neutral-50">
+              ${discountedPrice}
+            </span>
+            {hasDiscount && (
+              <span className="text-[10px] text-neutral-400 line-through">
+                ${product.price}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Sizes & Stock */}
-        {product.variants && product.variants.length > 0 && (
+        {/* ── thin gradient divider ────────────────────────────────────── */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primarygreen-500/50 to-transparent" />
+
+        {/* ── variants grid ────────────────────────────────────────────── */}
+        {sortedVariants.length > 0 && (
           <div className="space-y-2">
-            {/* Header */}
+            {/* header row */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                Sizes {product.size_type && `(${product.size_type})`}
+              <span className="text-[10px] font-semibold text-neutral-400 tracking-widest uppercase">
+                Sizes{" "}
+                {product.size_type && (
+                  <span className="font-normal normal-case tracking-normal opacity-60">
+                    ({product.size_type})
+                  </span>
+                )}
               </span>
-              <span className="text-xs">
-                Total:{" "}
-                <span
-                  className={cn(
-                    "font-medium",
-                    isOutOfStock
-                      ? "text-red-600"
-                      : isLowStock
-                      ? "text-orange-600"
-                      : "text-green-600",
-                  )}
-                >
-                  {totalStock}
-                </span>
-              </span>
+
+              {/* mini legend */}
+              <div className="flex items-center gap-2.5">
+                {[
+                  { color: "bg-primarygreen-300", label: "Stock" },
+                  { color: "bg-amber-500", label: "Low" },
+                  { color: "bg-neutral-400", label: "None" },
+                ].map(({ color, label }) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className={cn("w-1.5 h-1.5 rounded-full", color)} />
+                    <span className="text-[9px] text-neutral-400 uppercase tracking-wide">
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-2 gap-1.5">
-              {product.variants.map((variant) => {
-                const available = variant.stock > 0;
-                const lowStock = variant.stock > 0 && variant.stock <= 2;
+            {/* variant pills — 2-col grid */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(38px,1fr))] gap-1.5">
+              {sortedVariants.map((v) => {
+                const oos = v.stock === 0;
+                const low = v.stock > 0 && v.stock <= LOW_STOCK_PER_VARIANT;
 
                 return (
                   <div
-                    key={variant.id}
+                    key={v.id}
+                    title={oos ? "Out of stock" : `${v.stock} in stock`}
                     className={cn(
-                      "flex items-center justify-between rounded-md border px-2 py-1",
-                      "text-[10px] leading-tight",
-                      available
-                        ? lowStock
-                          ? "bg-orange-50 text-orange-700 border-orange-300"
-                          : "bg-muted text-foreground border-border"
-                        : "bg-red-50 text-red-700 opacity-70 border-red-300",
+                      "relative flex flex-col items-center justify-center rounded-lg border py-1 px-1 transition-colors",
+                      oos
+                        ? "border-neutral-400/25 bg-neutral-900/30 opacity-50"
+                        : low
+                        ? "border-amber-500/50 bg-amber-500/10"
+                        : "border-primarygreen-700/50 bg-primarygreen-900/50",
                     )}
                   >
-                    <span className="font-medium">{variant.size}</span>
                     <span
                       className={cn(
-                        lowStock && "text-orange-600 font-semibold",
+                        "text-[11px] font-bold leading-none",
+                        oos ? "text-neutral-400" : "text-neutral-50",
                       )}
                     >
-                      ({variant.stock})
+                      {v.size}
                     </span>
+                    <span
+                      className={cn(
+                        "text-[9px] leading-tight mt-0.5",
+                        oos
+                          ? "text-neutral-500"
+                          : low
+                          ? "text-amber-400 font-semibold"
+                          : "text-primarygreen-300/70",
+                      )}
+                    >
+                      {v.stock}
+                    </span>
+
+                    {/* strike line on OOS */}
+                    {oos && (
+                      <div className="absolute inset-x-1 top-1/2 h-px bg-neutral-400/60 -translate-y-1/2 rotate-[-12deg]" />
+                    )}
                   </div>
                 );
               })}
@@ -201,35 +279,95 @@ export default function AdminProductCard({ product }) {
           </div>
         )}
 
-        {/* SKU & Status */}
-        <div className="flex items-center justify-between pt-1">
+        {/* ── stock progress bar ───────────────────────────────────────── */}
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">
+              Total Stock
+            </span>
+            <span
+              className="text-[10px] font-bold"
+              style={{ color: stockLabelColor }}
+            >
+              {isOutOfStock ? "0" : totalStock} units
+            </span>
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-primarygreen-900/60 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${stockPct}%`, background: stockBarColor }}
+            />
+          </div>
+        </div>
+
+        {/* ── thin gradient divider ────────────────────────────────────── */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primarygreen-500/50 to-transparent" />
+
+        {/* ── SKU + status row ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
           {product.sku && (
-            <span className="text-[10px] text-muted-foreground font-mono">
+            <span className="text-[10px] font-mono text-neutral-400">
               {product.sku}
             </span>
           )}
+
+          {/* status pill with pulsing dot */}
           {product.status && (
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-[10px] px-1.5 py-0",
-                product.status === "active"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : "bg-gray-50 text-gray-700 border-gray-200",
-              )}
-            >
-              {product.status}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              {/* dot */}
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  isActive ? "bg-primarygreen-300" : "bg-neutral-400",
+                )}
+                style={
+                  isActive
+                    ? { animation: "statusPulse 2s ease-in-out infinite" }
+                    : {}
+                }
+              />
+              <span
+                className={cn(
+                  "text-[10px] font-semibold tracking-widest uppercase",
+                  isActive ? "text-primarygreen-300" : "text-neutral-400",
+                )}
+              >
+                {product.status}
+              </span>
+            </div>
           )}
         </div>
+
+        {/* savings tag */}
+        {hasDiscount && (
+          <span className="text-[10px] font-semibold text-amber-400/80 self-end">
+            You save ${savings}
+          </span>
+        )}
       </div>
 
-      {/* Customize Button */}
-      <Link href={`/admin/products/edit/${product.id}`}>
-        <Button className="w-full text-xs bg-primarygreen-500 text-primarygreen-50 hover:bg-primarygreen-700 rounded-t-none rounded-b-lg">
-          Customize <Cog />
-        </Button>
+      {/* ════════════════════════════════════════════════════════════════════
+          FOOTER CTA
+          ════════════════════════════════════════════════════════════════════ */}
+      <Link
+        href={`/admin/products/edit/${product.id}`}
+        className={cn(
+          "flex items-center justify-center gap-2 w-full px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-colors duration-200",
+          isOutOfStock
+            ? "bg-primarygreen-900/60 text-neutral-400 cursor-not-allowed pointer-events-none border-t border-primarygreen-700/30"
+            : "bg-primarygreen-500 hover:bg-primarygreen-700 text-primarygreen-50 border-t border-primarygreen-700/40",
+        )}
+      >
+        Customize <Cog className="w-3.5 h-3.5" />
       </Link>
+
+      {/* ── keyframes injected once ─────────────────────────────────────── */}
+      <style>{`
+        @keyframes statusPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(120, 183, 156, 0.6); }
+          50%      { box-shadow: 0 0 0 4px rgba(120, 183, 156, 0); }
+        }
+      `}</style>
     </div>
   );
 }
