@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Cog, Package } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import Image from "next/image";
 import Link from "next/link";
+import SignatureButton from "./SignatureButton";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 const LOW_STOCK_PER_VARIANT = 2; // variant-level "low" threshold
@@ -38,39 +39,24 @@ export default function AdminProductCard({ product }) {
   const discountedPrice = hasDiscount
     ? (product.price - (product.price * product.discount) / 100).toFixed(0)
     : product.price;
-  const savings = hasDiscount
-    ? ((product.price * product.discount) / 100).toFixed(0)
-    : 0;
-
-  // ── max possible stock (for progress bar width) ─────────────────────────
-  const maxStock = (product.variants?.length ?? 1) * 15;
-  const stockPct = Math.min((totalStock / maxStock) * 100, 100);
 
   // ── sorted variants (numeric sizes sorted numerically, else alpha) ──────
   const sortedVariants = [...(product.variants || [])].sort((a, b) =>
     product.size_type === "numeric"
       ? Number(a.size) - Number(b.size)
-      : a.size.localeCompare(b.size),
+      : a.size.localeCompare(b.size)
   );
 
-  // ── status colour helpers ────────────────────────────────────────────────
-  const stockBarColor = isOutOfStock
-    ? "var(--color-neutral-400)"
-    : isLowStock
-    ? "#c89030"
-    : "var(--color-primarygreen-300)";
-
-  const stockLabelColor = stockBarColor;
-
   return (
-    <div className="group flex flex-col rounded-xl overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <div className="group flex flex-col rounded-xl  overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300">
       {/* ════════════════════════════════════════════════════════════════════
           IMAGE SECTION  — aspect 4:5 (1280 × 1600) — object-contain, no crop
           ════════════════════════════════════════════════════════════════════ */}
+
       <div className="relative w-full" style={{ aspectRatio: "4 / 5" }}>
         {/* image or placeholder */}
         {images.length > 0 ? (
-          <div className="w-full h-full bg-primarygreen-900">
+          <div className="w-full h-full bg-primarygreen-900 rounded-b-xl">
             <Image
               src={images[imgIdx]}
               alt={product.name}
@@ -91,10 +77,7 @@ export default function AdminProductCard({ product }) {
 
         {/* Discount ribbon — top-left */}
         {hasDiscount && (
-          <span
-            className="absolute top-3 left-3 z-10 bg-primarygreen-500 text-primarygreen-100 text-[10px] sm:text-xs font-bold tracking-wider px-2.5 py-1 rounded-r-md shadow-md"
-            style={{ borderLeft: "none" }}
-          >
+          <span className="absolute top-3 left-3 z-10 bg-darkred backdrop-blur-sm border border-primarygreen-100 text-primarygreen-100 text-[9px] sm:text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-md">
             -{product.discount}%
           </span>
         )}
@@ -155,7 +138,7 @@ export default function AdminProductCard({ product }) {
                     "h-1.5 rounded-full transition-all duration-300",
                     i === imgIdx
                       ? "w-5 bg-primarygreen-300"
-                      : "w-1.5 bg-primarygreen-100/40 hover:bg-primarygreen-100/70",
+                      : "w-1.5 bg-primarygreen-100/40 hover:bg-primarygreen-100/70"
                   )}
                 />
               ))}
@@ -184,18 +167,18 @@ export default function AdminProductCard({ product }) {
           {/* price block */}
           <div className="flex flex-col items-end shrink-0">
             <span className="text-sm font-bold text-neutral-50">
-              ${discountedPrice}
+              {discountedPrice} L.E
             </span>
             {hasDiscount && (
               <span className="text-[10px] text-neutral-400 line-through">
-                ${product.price}
+                {product.price} L.E
               </span>
             )}
           </div>
         </div>
 
         {/* ── thin gradient divider ────────────────────────────────────── */}
-        <div className="h-px bg-gradient-to-r from-transparent via-primarygreen-500/50 to-transparent" />
+        <div className="h-px bg-linear-to-r from-transparent via-primarygreen-500/50 to-transparent" />
 
         {/* ── variants grid ────────────────────────────────────────────── */}
         {sortedVariants.length > 0 && (
@@ -213,18 +196,9 @@ export default function AdminProductCard({ product }) {
 
               {/* mini legend */}
               <div className="flex items-center gap-2.5">
-                {[
-                  { color: "bg-primarygreen-300", label: "Stock" },
-                  { color: "bg-amber-500", label: "Low" },
-                  { color: "bg-neutral-400", label: "None" },
-                ].map(({ color, label }) => (
-                  <div key={label} className="flex items-center gap-1">
-                    <span className={cn("w-1.5 h-1.5 rounded-full", color)} />
-                    <span className="text-[9px] text-neutral-400 uppercase tracking-wide">
-                      {label}
-                    </span>
-                  </div>
-                ))}
+                <span className="text-[10px] font-semibold text-neutral-400 tracking-widest uppercase">
+                  Total Stock : {totalStock} units
+                </span>
               </div>
             </div>
 
@@ -244,13 +218,13 @@ export default function AdminProductCard({ product }) {
                         ? "border-neutral-400/25 bg-neutral-900/30 opacity-50"
                         : low
                         ? "border-amber-500/50 bg-amber-500/10"
-                        : "border-primarygreen-700/50 bg-primarygreen-900/50",
+                        : "border-primarygreen-700/50 bg-primarygreen-900/50"
                     )}
                   >
                     <span
                       className={cn(
                         "text-[11px] font-bold leading-none",
-                        oos ? "text-neutral-400" : "text-neutral-50",
+                        oos ? "text-neutral-400" : "text-neutral-50"
                       )}
                     >
                       {v.size}
@@ -262,7 +236,7 @@ export default function AdminProductCard({ product }) {
                           ? "text-neutral-500"
                           : low
                           ? "text-amber-400 font-semibold"
-                          : "text-primarygreen-300/70",
+                          : "text-primarygreen-300/70"
                       )}
                     >
                       {v.stock}
@@ -270,7 +244,7 @@ export default function AdminProductCard({ product }) {
 
                     {/* strike line on OOS */}
                     {oos && (
-                      <div className="absolute inset-x-1 top-1/2 h-px bg-neutral-400/60 -translate-y-1/2 rotate-[-12deg]" />
+                      <div className="absolute inset-x-1 top-1/2 h-px bg-neutral-400/60 -translate-y-1/2 rotate-12" />
                     )}
                   </div>
                 );
@@ -279,29 +253,8 @@ export default function AdminProductCard({ product }) {
           </div>
         )}
 
-        {/* ── stock progress bar ───────────────────────────────────────── */}
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <span className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">
-              Total Stock
-            </span>
-            <span
-              className="text-[10px] font-bold"
-              style={{ color: stockLabelColor }}
-            >
-              {isOutOfStock ? "0" : totalStock} units
-            </span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-primarygreen-900/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${stockPct}%`, background: stockBarColor }}
-            />
-          </div>
-        </div>
-
         {/* ── thin gradient divider ────────────────────────────────────── */}
-        <div className="h-px bg-gradient-to-r from-transparent via-primarygreen-500/50 to-transparent" />
+        <div className="h-px bg-linear-to-r from-transparent via-primarygreen-500/50 to-transparent" />
 
         {/* ── SKU + status row ─────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -318,7 +271,7 @@ export default function AdminProductCard({ product }) {
               <span
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  isActive ? "bg-primarygreen-300" : "bg-neutral-400",
+                  isActive ? "bg-primarygreen-300" : "bg-neutral-400"
                 )}
                 style={
                   isActive
@@ -329,7 +282,7 @@ export default function AdminProductCard({ product }) {
               <span
                 className={cn(
                   "text-[10px] font-semibold tracking-widest uppercase",
-                  isActive ? "text-primarygreen-300" : "text-neutral-400",
+                  isActive ? "text-primarygreen-300" : "text-neutral-400"
                 )}
               >
                 {product.status}
@@ -337,29 +290,15 @@ export default function AdminProductCard({ product }) {
             </div>
           )}
         </div>
-
-        {/* savings tag */}
-        {hasDiscount && (
-          <span className="text-[10px] font-semibold text-amber-400/80 self-end">
-            You save ${savings}
-          </span>
-        )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
           FOOTER CTA
           ════════════════════════════════════════════════════════════════════ */}
-      <Link
-        href={`/admin/products/edit/${product.id}`}
-        className={cn(
-          "flex items-center justify-center gap-2 w-full px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-colors duration-200",
-          isOutOfStock
-            ? "bg-primarygreen-900/60 text-neutral-400 cursor-not-allowed pointer-events-none border-t border-primarygreen-700/30"
-            : "bg-primarygreen-500 hover:bg-primarygreen-700 text-primarygreen-50 border-t border-primarygreen-700/40",
-        )}
-      >
-        Customize <Cog className="w-3.5 h-3.5" />
-      </Link>
+      <SignatureButton
+        text="Customize"
+        path={`/admin/products/edit/${product.id}`}
+      />
 
       {/* ── keyframes injected once ─────────────────────────────────────── */}
       <style>{`

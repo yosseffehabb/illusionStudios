@@ -19,8 +19,9 @@
   --color-primarygreen-500: #234c3b;
   --color-primarygreen-700: #1b3a2e;
   --color-primarygreen-900: #11241a;
-}
 
+  --color-darkred: #8b1e1e;
+}
 
 @theme inline {
   --color-background: var(--background);
