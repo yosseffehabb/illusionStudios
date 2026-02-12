@@ -119,12 +119,12 @@ export default function AdminOrdersTable() {
             placeholder="Search by order number, customer, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-9 h-10 w-full placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primarygreen-500 focus:border-primarygreen-500 focus-visible:ring-2 focus-visible:ring-primarygreen-500 focus-visible:ring-offset-0"
+            className="pl-9 pr-9 h-10 w-full placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primarygreen-500 focus:border-primarygreen-500 focus-visible:ring-2 focus-visible:ring-primarygreen-500 focus-visible:ring-offset-0 bg-primarygreen-50"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors bg-primarygreen-50"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -133,7 +133,7 @@ export default function AdminOrdersTable() {
         </div>
 
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-full sm:w-[180px] h-10">
+          <SelectTrigger className="w-full sm:w-[180px] h-10 bg-primarygreen-50">
             <Filter className="h-4 w-4 mr-2 text-primarygreen-500" />
             <SelectValue placeholder="Status" />
           </SelectTrigger>

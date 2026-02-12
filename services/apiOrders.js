@@ -100,7 +100,7 @@ export async function getOrdersByPhone(phone) {
     const limit = rateLimit(
       `phone:${sanitized}`,
       RATE_LIMITS.PUBLIC_PHONE_SEARCH.MAX_REQUESTS,
-      RATE_LIMITS.PUBLIC_PHONE_SEARCH.WINDOW_MS
+      RATE_LIMITS.PUBLIC_PHONE_SEARCH.WINDOW_MS,
     );
 
     if (!limit.allowed) {
@@ -134,7 +134,7 @@ export async function getOrdersByPhone(phone) {
           unit_price,
           subtotal
         )
-      `
+      `,
       )
       .eq("customer_phone", sanitized)
       .order("created_at", { ascending: false });
@@ -175,7 +175,7 @@ export async function getOrderByNumber(orderNumber) {
     const limit = rateLimit(
       `order:${sanitized}`,
       RATE_LIMITS.PUBLIC_ORDER_NUMBER.MAX_REQUESTS,
-      RATE_LIMITS.PUBLIC_ORDER_NUMBER.WINDOW_MS
+      RATE_LIMITS.PUBLIC_ORDER_NUMBER.WINDOW_MS,
     );
 
     if (!limit.allowed) {
@@ -209,7 +209,7 @@ export async function getOrderByNumber(orderNumber) {
           unit_price,
           subtotal
         )
-      `
+      `,
       )
       .eq("order_number", sanitized)
       .single();
@@ -287,7 +287,7 @@ export async function getPaginatedOrders({
           subtotal
         )
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -358,14 +358,14 @@ export async function searchOrdersPaginated(searchQuery, filters = {}) {
           discount,
           subtotal
         )
-      `
+      `,
       )
       .order("created_at", { ascending: false });
 
     // Search across multiple fields
     if (sanitized) {
       query = query.or(
-        `customer_name.ilike.%${sanitized}%,order_number.ilike.%${sanitized}%,customer_phone.ilike.%${sanitized}%`
+        `customer_name.ilike.%${sanitized}%,order_number.ilike.%${sanitized}%,customer_phone.ilike.%${sanitized}%`,
       );
     }
 
@@ -479,7 +479,7 @@ export async function getOrderById(orderId) {
           discount,
           subtotal
         )
-      `
+      `,
       )
       .eq("id", orderId)
       .single();

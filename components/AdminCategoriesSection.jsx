@@ -4,8 +4,19 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
-import { AlertCircle, CirclePlus, Search, Trash2, X, Loader2 } from "lucide-react";
-import { useCategories, useAddCategory, useDeleteCategory } from "@/hooks/useCategories";
+import {
+  AlertCircle,
+  CirclePlus,
+  Search,
+  Trash2,
+  X,
+  Loader2,
+} from "lucide-react";
+import {
+  useCategories,
+  useAddCategory,
+  useDeleteCategory,
+} from "@/hooks/useCategories";
 
 export default function AdminCategoriesSection() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,7 +26,7 @@ export default function AdminCategoriesSection() {
 
   // Fetch categories using the hook
   const { data: categories = [], isLoading, error } = useCategories();
-  
+
   // Mutations
   const addCategoryMutation = useAddCategory();
   const deleteCategoryMutation = useDeleteCategory();
@@ -34,13 +45,12 @@ export default function AdminCategoriesSection() {
   const handleDelete = async (category) => {
     if (category.productCount > 0) {
       setDeleteError(
-        `Cannot delete category. ${category.productCount} product(s) are using it.`
+        `Cannot delete category. ${category.productCount} product(s) are using it.`,
       );
       return;
     }
 
     try {
-      
       await deleteCategoryMutation.mutateAsync(category.id);
       setDeleteError(null);
     } catch (error) {
@@ -59,7 +69,7 @@ export default function AdminCategoriesSection() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim() || !formData.slug.trim()) {
       return;
     }
@@ -139,11 +149,11 @@ export default function AdminCategoriesSection() {
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primarygreen-500" />
-            <Input
+          <Input
             placeholder="Search by name or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-9 h-10 w-full placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primarygreen-500 focus:border-primarygreen-500 focus-visible:ring-2 focus-visible:ring-primarygreen-500 focus-visible:ring-offset-0"
+            className="pl-9 pr-9 h-10 w-full placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primarygreen-500 focus:border-primarygreen-500 focus-visible:ring-2 focus-visible:ring-primarygreen-500 focus-visible:ring-offset-0 bg-primarygreen-50"
           />
           {searchQuery && (
             <button

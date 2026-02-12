@@ -23,6 +23,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { Spinner } from "./ui/spinner";
 
 export default function AdminAddProductForm() {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -486,7 +487,7 @@ export default function AdminAddProductForm() {
         >
           {isSubmitting ? (
             <>
-              <span className="animate-spin mr-2">⏳</span>
+              <Spinner />
               {selectedFiles.length > 0
                 ? "Uploading & Creating..."
                 : "Creating Product..."}
