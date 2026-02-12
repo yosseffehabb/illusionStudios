@@ -48,7 +48,7 @@ export default function AdminProductCard({ product }) {
   );
 
   return (
-    <div className="group flex flex-col rounded-xl  overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <div className="group flex flex-col rounded-xl  overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300  pb-3.5 ">
       {/* ════════════════════════════════════════════════════════════════════
           IMAGE SECTION  — aspect 4:5 (1280 × 1600) — object-contain, no crop
           ════════════════════════════════════════════════════════════════════ */}
@@ -296,8 +296,9 @@ export default function AdminProductCard({ product }) {
           FOOTER CTA
           ════════════════════════════════════════════════════════════════════ */}
       <SignatureButton
-        text="Customize"
+        text={`customize`}
         path={`/admin/products/edit/${product.id}`}
+        icon={<Cog className="w-4 h-4" />}
       />
 
       {/* ── keyframes injected once ─────────────────────────────────────── */}

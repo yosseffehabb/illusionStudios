@@ -98,3 +98,64 @@ export async function getAllProducts() {
     return { success: false, products: [], error: error.message };
   }
 }
+
+/* ================================
+   Add New Product
+================================ */
+
+export async function addNewProduct(productData) {
+  try {
+    const auth = await checkAdminAuth();
+    if (!auth.authorized) {
+      return {
+        success: false,
+        error: auth.error,
+      };
+    }
+
+    const supabase = await createClient();
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .insert({
+        name: productData.name,
+        description: productData.description,
+        price: productData.price,
+        discount: productData.discount,
+        color: productData.color,
+        category_id: productData.category_id,
+        status: productData.status,
+        size_type: productData.size_type,
+        images: productData.images,
+      })
+      .select()
+      .single();
+
+    if (productError) {
+      throw new Error(`Failed to create product: ${productError.message}`);
+    }
+
+    // Insert product variants
+    if (productData.variants && productData.variants.length > 0) {
+      const variantsToInsert = productData.variants.map((variant) => ({
+        product_id: product.id,
+        size: variant.size,
+        stock: variant.stock,
+      }));
+
+      const { error: variantsError } = await supabase
+        .from("product_variants")
+        .insert(variantsToInsert);
+
+      if (variantsError) {
+        await supabase.from("products").delete().eq("id", product.id);
+        throw new Error(`Failed to create variants: ${variantsError.message}`);
+      }
+    }
+
+    // ✅ Return success response
+    return { success: true, product };
+  } catch (error) {
+    console.error("Error adding new product:", error.message);
+    return { success: false, error: error.message };
+  }
+}

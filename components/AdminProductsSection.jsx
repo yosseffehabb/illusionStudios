@@ -114,7 +114,7 @@ export default function AdminProductsSection() {
             )}
           </div>
 
-          <Link href="/admin/products/add">
+          <Link href="/admin/products/add-new">
             <Button className="w-full sm:w-[180px] h-10 bg-primarygreen-500 text-primarygreen-50 hover:bg-primarygreen-700 transition-all">
               Add Product <CirclePlus />
             </Button>

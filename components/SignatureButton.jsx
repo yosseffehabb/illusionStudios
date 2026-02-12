@@ -13,7 +13,13 @@ import { useEffect } from "react";
  * @param {number} delay - Animation delay in milliseconds (default: 0)
  * @param {function} onClick - Custom click handler (optional)
  */
-export default function SignatureButton({ text, path, delay = 0, onClick }) {
+export default function SignatureButton({
+  text,
+  path,
+  delay = 0,
+  onClick,
+  icon,
+}) {
   useEffect(() => {
     // Inject button-specific styles if not already present
     if (!document.getElementById("cta-button-styles")) {
@@ -72,7 +78,10 @@ export default function SignatureButton({ text, path, delay = 0, onClick }) {
         animationDelay: `${delay}ms`,
       }}
     >
-      <span className="relative z-10">{text}</span>
+      <div className="relative z-10 flex items-center justify-center gap-1.5">
+        {text}
+        {icon ? icon : ""}
+      </div>
       <div className="cta-button-shimmer" />
     </button>
   );
