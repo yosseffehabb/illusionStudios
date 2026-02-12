@@ -78,25 +78,25 @@ function AdminHeader() {
           >
             <div className="flex flex-col space-y-4 p-4">
               <a
-                href="/orders"
+                href="/admin/orders"
                 className="px-3 py-2 text-neutral-400 hover:text-primarygreen-500 transition-colors"
                 onClick={toggleMobileMenu}
               >
                 Orders
               </a>
               <a
-                href="/products"
+                href="admin/products"
                 className="px-3 py-2 text-neutral-400 hover:text-primarygreen-500 transition-colors"
                 onClick={toggleMobileMenu}
               >
                 Products
               </a>
               <a
-                href="/categories"
+                href="/admin/categories"
                 className="px-3 py-2 text-neutral-400 hover:text-primarygreen-500 transition-colors"
                 onClick={toggleMobileMenu}
               >
-                catefories
+                catetories
               </a>
 
               {/* Mobile Logout Button */}
