@@ -42,6 +42,7 @@ export default function AdminAddProductForm() {
     handleSubmit,
     reset,
     control,
+
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -102,19 +103,8 @@ export default function AdminAddProductForm() {
         return;
       }
 
-      // Convert string values to numbers
-      const processedData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        discount: parseInt(formData.discount),
-        variants: formData.variants.map((v) => ({
-          size: v.size,
-          stock: parseInt(v.stock),
-        })),
-      };
-
       await addProductMutation.mutateAsync({
-        productData: processedData,
+        formData: formData,
         imageFiles: selectedFiles,
       });
 

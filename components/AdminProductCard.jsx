@@ -14,7 +14,11 @@ const LOW_STOCK_TOTAL = 5; // card-level "low" threshold
 export default function AdminProductCard({ product }) {
   // ── image carousel state ─────────────────────────────────────────────────
   const [imgIdx, setImgIdx] = useState(0);
-  const images = product.images || [];
+
+  // ✅ Extract .url from each image object
+  const images = (product.images || []).map((img) =>
+    typeof img === "string" ? img : img.url,
+  );
 
   const goTo = (i) => setImgIdx(i);
   const prev = (e) => {
@@ -44,11 +48,11 @@ export default function AdminProductCard({ product }) {
   const sortedVariants = [...(product.variants || [])].sort((a, b) =>
     product.size_type === "numeric"
       ? Number(a.size) - Number(b.size)
-      : a.size.localeCompare(b.size)
+      : a.size.localeCompare(b.size),
   );
 
   return (
-    <div className="group flex flex-col rounded-xl  overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-lg hover:shadow-xl transition-shadow duration-300  pb-3.5 ">
+    <div className="group flex flex-col rounded-xl  overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-2xl hover:shadow-xl transition-shadow duration-300  pb-3.5 ">
       {/* ════════════════════════════════════════════════════════════════════
           IMAGE SECTION  — aspect 4:5 (1280 × 1600) — object-contain, no crop
           ════════════════════════════════════════════════════════════════════ */}
@@ -138,7 +142,7 @@ export default function AdminProductCard({ product }) {
                     "h-1.5 rounded-full transition-all duration-300",
                     i === imgIdx
                       ? "w-5 bg-primarygreen-300"
-                      : "w-1.5 bg-primarygreen-100/40 hover:bg-primarygreen-100/70"
+                      : "w-1.5 bg-primarygreen-100/40 hover:bg-primarygreen-100/70",
                   )}
                 />
               ))}
@@ -217,14 +221,14 @@ export default function AdminProductCard({ product }) {
                       oos
                         ? "border-neutral-400/25 bg-neutral-900/30 opacity-50"
                         : low
-                        ? "border-amber-500/50 bg-amber-500/10"
-                        : "border-primarygreen-700/50 bg-primarygreen-900/50"
+                          ? "border-amber-500/50 bg-amber-500/10"
+                          : "border-primarygreen-700/50 bg-primarygreen-900/50",
                     )}
                   >
                     <span
                       className={cn(
                         "text-[11px] font-bold leading-none",
-                        oos ? "text-neutral-400" : "text-neutral-50"
+                        oos ? "text-neutral-400" : "text-neutral-50",
                       )}
                     >
                       {v.size}
@@ -235,8 +239,8 @@ export default function AdminProductCard({ product }) {
                         oos
                           ? "text-neutral-500"
                           : low
-                          ? "text-amber-400 font-semibold"
-                          : "text-primarygreen-300/70"
+                            ? "text-amber-400 font-semibold"
+                            : "text-primarygreen-300/70",
                       )}
                     >
                       {v.stock}
@@ -271,7 +275,7 @@ export default function AdminProductCard({ product }) {
               <span
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  isActive ? "bg-primarygreen-300" : "bg-neutral-400"
+                  isActive ? "bg-primarygreen-300" : "bg-neutral-400",
                 )}
                 style={
                   isActive
@@ -282,7 +286,7 @@ export default function AdminProductCard({ product }) {
               <span
                 className={cn(
                   "text-[10px] font-semibold tracking-widest uppercase",
-                  isActive ? "text-primarygreen-300" : "text-neutral-400"
+                  isActive ? "text-primarygreen-300" : "text-neutral-400",
                 )}
               >
                 {product.status}
@@ -297,7 +301,7 @@ export default function AdminProductCard({ product }) {
           ════════════════════════════════════════════════════════════════════ */}
       <SignatureButton
         text={`customize`}
-        path={`/admin/products/edit/${product.id}`}
+        path={`/admin/products/customize/${product.id}`}
         icon={<Cog className="w-4 h-4" />}
       />
 

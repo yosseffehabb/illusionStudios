@@ -1,11 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllProducts, addNewProduct } from "@/services/apiProducts";
+import {
+  getAllProducts,
+  addNewProduct,
+  getProductById,
+  deleteProduct,
+  updateProduct,
+  getProductImagesById,
+} from "@/services/apiProducts";
 import toast from "react-hot-toast";
 import { ProductKeys } from "@/lib/productkeys";
 import { uploadImagesToCloudinary } from "@/lib/cloudinary";
-import { useRouter } from "next/navigation"; // Add this import
+import { useRouter } from "next/navigation";
 
 /* ================================
    Get Products
@@ -28,30 +35,52 @@ export function useProducts(options = {}) {
   });
 }
 
-export function useAddProduct() {
-  const queryClient = useQueryClient();
-  const router = useRouter(); // Add this hook
+/* ================================
+   Get Product By ID
+================================ */
+export function useProductById(productId, options = {}) {
+  return useQuery({
+    queryKey: ProductKeys.detail(productId),
+    queryFn: async () => {
+      const result = await getProductById(productId);
 
-  return useMutation({
-    mutationFn: async ({ productData, imageFiles }) => {
-      // 1. Upload images to Cloudinary first
-      let imageUrls = [];
-      if (imageFiles && imageFiles.length > 0) {
-        try {
-          imageUrls = await uploadImagesToCloudinary(imageFiles);
-        } catch (error) {
-          throw new Error(`Image upload failed: ${error.message}`);
-        }
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to fetch product");
       }
 
-      // 2. Add image URLs to product data
-      const completeProductData = {
-        ...productData,
-        images: imageUrls,
+      return result.product;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: Boolean(productId && (options.enabled ?? true)),
+  });
+}
+
+/* ================================
+   Add Product
+================================ */
+
+// 1- process the form data
+// 2-recive image files and uploadthem to claudenary
+// 3-compine images urls and the data we proccessed and upload to supa
+export function useAddProduct() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async ({ formData, imageFiles }) => {
+      const proccessedProductData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        discount: parseInt(formData.discount),
+        variants: formData.variants.map((v) => ({
+          size: v.size,
+          stock: parseInt(v.stock),
+        })),
       };
 
       // 3. Call API to create product
-      const result = await addNewProduct(completeProductData);
+      const result = await addNewProduct(proccessedProductData, imageFiles);
 
       if (!result?.success) {
         throw new Error(result?.error || "Failed to add product");
@@ -66,15 +95,6 @@ export function useAddProduct() {
 
       // Snapshot previous value
       const previousProducts = queryClient.getQueryData(ProductKeys.list());
-
-      // Optimistically update (optional - you might skip this since images need to upload)
-      // queryClient.setQueryData(ProductKeys.list(), (old) => {
-      //   const optimisticProduct = {
-      //     id: `temp-${Date.now()}`,
-      //     ...newProduct.productData,
-      //   };
-      //   return [...(old || []), optimisticProduct];
-      // });
 
       return { previousProducts };
     },
@@ -92,6 +112,140 @@ export function useAddProduct() {
       // Refetch to get real server data
       queryClient.invalidateQueries({ queryKey: ProductKeys.all });
       toast.success("Product added successfully");
+      router.push("/admin/products");
+    },
+  });
+}
+
+/* ================================
+   Update Product
+================================ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async ({
+      productId,
+      formData,
+      existingImageUrls = [],
+      newImageFiles = [],
+    }) => {
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        discount: parseInt(formData.discount),
+        variants: formData.variants.map((v) => ({
+          size: v.size,
+          stock: parseInt(v.stock),
+        })),
+      };
+
+      let imageUrls = [...existingImageUrls];
+
+      if (newImageFiles && newImageFiles.length > 0) {
+        try {
+          const uploadedUrls = await uploadImagesToCloudinary(newImageFiles);
+          imageUrls = [...imageUrls, ...uploadedUrls];
+        } catch (error) {
+          throw new Error(`Image upload failed: ${error.message}`);
+        }
+      }
+
+      if (imageUrls.length === 0) {
+        throw new Error("At least one product image is required");
+      }
+
+      productData.images = imageUrls;
+
+      const result = await updateProduct(productId, productData);
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to update product");
+      }
+
+      return result.product;
+    },
+
+    onMutate: async ({ productId }) => {
+      await queryClient.cancelQueries({
+        queryKey: ProductKeys.detail(productId),
+      });
+      const previousProduct = queryClient.getQueryData(
+        ProductKeys.detail(productId),
+      );
+      return { previousProduct };
+    },
+
+    onError: (error, { productId }, context) => {
+      if (context?.previousProduct) {
+        queryClient.setQueryData(
+          ProductKeys.detail(productId),
+          context.previousProduct,
+        );
+      }
+      console.error("Product update failed:", error);
+      toast.error(error?.message || "Failed to update product");
+    },
+
+    onSuccess: (_, { productId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ProductKeys.detail(productId),
+      });
+      queryClient.invalidateQueries({ queryKey: ProductKeys.list() });
+      toast.success("Product updated successfully");
+      router.push("/admin/products");
+    },
+  });
+}
+
+/* ================================
+   Delete Product
+================================ */
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async ({ productId, images }) => {
+      // The server action handles both Cloudinary deletion and DB deletion
+      const result = await deleteProduct(productId, images);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete product");
+      }
+
+      return result;
+    },
+
+    onMutate: async ({ productId }) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ProductKeys.list() });
+
+      // Snapshot previous value
+      const previousProducts = queryClient.getQueryData(ProductKeys.list());
+
+      // Optimistically remove the product from the UI
+      queryClient.setQueryData(ProductKeys.list(), (old) =>
+        old?.filter((product) => product.id !== productId),
+      );
+
+      return { previousProducts };
+    },
+
+    onError: (error, { productId }, context) => {
+      // Rollback on error
+      if (context?.previousProducts) {
+        queryClient.setQueryData(ProductKeys.list(), context.previousProducts);
+      }
+      console.error("Product deletion failed:", error);
+      toast.error(error?.message || "Failed to delete product");
+    },
+
+    onSuccess: () => {
+      // Refetch to get real server data
+      queryClient.invalidateQueries({ queryKey: ProductKeys.all });
+      toast.success("Product deleted successfully");
       router.push("/admin/products");
     },
   });
