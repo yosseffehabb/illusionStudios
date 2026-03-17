@@ -8,6 +8,7 @@ import {
   deleteProduct,
   updateProduct,
   getProductImagesById,
+  getActiveProducts,
 } from "@/services/apiProducts";
 import toast from "react-hot-toast";
 import { ProductKeys } from "@/lib/productkeys";
@@ -31,6 +32,26 @@ export function useProducts(options = {}) {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: Boolean(options.enabled ?? true),
+  });
+}
+/* ================================
+   Get Active Products
+================================ */
+export function useActiveProducts(options = {}) {
+  return useQuery({
+    queryKey: ProductKeys.list({ status: "active" }),
+    queryFn: async () => {
+      const result = await getActiveProducts();
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to fetch active products");
+      }
+
+      return result.products;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     enabled: Boolean(options.enabled ?? true),
   });
 }

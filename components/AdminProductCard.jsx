@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Cog, Package } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import Image from "next/image";
-import Link from "next/link";
 import SignatureButton from "./SignatureButton";
 
 // ─── constants ───────────────────────────────────────────────────────────────
