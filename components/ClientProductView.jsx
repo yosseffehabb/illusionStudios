@@ -11,6 +11,8 @@ import {
   Heart,
   ChevronLeft,
   ZoomIn,
+  Minus,
+  Plus,
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useCallback } from "react";
@@ -48,6 +50,7 @@ export default function ClientProductView({ productId }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [quantity, setQuantity] = useState(1);
 
   const priceAfterDiscount =
     product?.discount > 0
@@ -67,6 +70,28 @@ export default function ClientProductView({ productId }) {
   const isLowStock = activeVariant
     ? activeVariant.stock > 0 && activeVariant.stock <= 5
     : false;
+
+  const maxQuantity = activeVariant?.stock ?? 99;
+
+  const handleQuantityDecrement = () => {
+    setQuantity((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleQuantityIncrement = () => {
+    setQuantity((prev) => Math.min(maxQuantity, prev + 1));
+  };
+
+  const handleQuantityInput = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (isNaN(val)) return setQuantity(1);
+    setQuantity(Math.min(maxQuantity, Math.max(1, val)));
+  };
+
+  // Reset quantity when variant changes
+  const handleVariantSelect = (variantId) => {
+    setSelectedVariant(variantId);
+    setQuantity(1);
+  };
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
@@ -127,8 +152,8 @@ export default function ClientProductView({ productId }) {
     : isOutOfStock
       ? "Out of Stock"
       : addedToCart
-        ? "Added to cart ✓"
-        : "Add to Cart";
+        ? `Added ${quantity} to cart ✓`
+        : `Add ${quantity > 1 ? `${quantity} items` : "to Cart"}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -267,10 +292,10 @@ export default function ClientProductView({ productId }) {
             >
               {priceAfterDiscount ? (
                 <>
-                  <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                  <span className="text-3xl font-extrabold text-foreground tracking-tight text-primarygreen-700">
                     {priceAfterDiscount} L.E
                   </span>
-                  <span className="text-lg text-muted-foreground line-through">
+                  <span className="text-lg text-neutral-400 line-through">
                     {product.price.toFixed(2)} L.E
                   </span>
                   <span className="inline-flex items-center text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-1 rounded-full">
@@ -331,21 +356,70 @@ export default function ClientProductView({ productId }) {
                       whileHover={!outOfStock ? { y: -2, scale: 1.03 } : {}}
                       whileTap={!outOfStock ? { scale: 0.96 } : {}}
                       onClick={() =>
-                        !outOfStock && setSelectedVariant(variant.id)
+                        !outOfStock && handleVariantSelect(variant.id)
                       }
                       disabled={outOfStock}
                       className={`h-11 min-w-12 px-5 rounded-xl text-sm font-semibold border-2 transition-colors duration-200 relative ${
                         isSelected
-                          ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_12px_hsl(var(--primary)/0.35)]"
+                          ? "bg-primarygreen-700 text-primarygreen-100 border-primarygreen-700 shadow-[0_2px_12px_hsl(var(--primarygreen-700)/0.35)]"
                           : outOfStock
-                            ? "opacity-25 cursor-not-allowed border-border text-muted-foreground line-through"
-                            : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-muted/40"
+                            ? "opacity-85 cursor-not-allowed border-border text-neutral-400 line-through"
+                            : "bg-card text-foreground border-border hover:border-primarygreen-700/50 hover:bg-muted/40"
                       }`}
                     >
                       {variant.size}
                     </motion.button>
                   );
                 })}
+              </div>
+            </motion.div>
+
+            {/* ── Quantity Picker ── */}
+            <motion.div {...fadeUp(0.28)} className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-400">
+                QUANTITY
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border-2 border-border rounded-xl overflow-hidden">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleQuantityDecrement}
+                    disabled={quantity <= 1 || !selectedVariant || isOutOfStock}
+                    className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-muted/60 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4 text-primarygreen-700" />
+                  </motion.button>
+
+                  <div className="w-px h-6 bg-border" />
+
+                  <input
+                    type="number"
+                    min={1}
+                    max={maxQuantity}
+                    value={quantity}
+                    onChange={handleQuantityInput}
+                    disabled={!selectedVariant || isOutOfStock}
+                    className="w-14 h-11 text-center text-sm font-bold text-neutral-400 bg-transparent focus:outline-none disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none "
+                    aria-label="Quantity"
+                  />
+
+                  <div className="w-px h-6 bg-border" />
+
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleQuantityIncrement}
+                    disabled={
+                      quantity >= maxQuantity ||
+                      !selectedVariant ||
+                      isOutOfStock
+                    }
+                    className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-muted/60 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4 text-primarygreen-700" />
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
 
@@ -371,7 +445,7 @@ export default function ClientProductView({ productId }) {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
                 disabled={!selectedVariant || isOutOfStock}
-                className={`flex-1 h-13 text-[15px] font-bold rounded-2xl transition-all duration-300 cursor-pointer text-primarygreen-100 tracking-wide bg-primarygreen-500
+                className={`flex-1 h-13 text-[15px] font-bold rounded-2xl transition-all duration-300 cursor-pointer text-primarygreen-100 tracking-wide bg-primarygreen-700
                   ${
                     addedToCart
                       ? "bg-emerald-600 text-white shadow-[0_4px_24px_rgba(16,185,129,0.35)]"
