@@ -171,7 +171,7 @@ export default function ClientProductCard({ product }) {
       {/* ── FOOTER CTA ────────────────────────────────────────────────────── */}
       <SignatureButton
         text="view"
-        path={`/admin/products/customize/${product.id}`}
+        path={`/shop/${product.id}`}
         icon={<Eye className="w-4 h-4" />}
       />
 

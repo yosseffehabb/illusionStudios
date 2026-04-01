@@ -90,7 +90,7 @@ export async function getAllProducts() {
             size,
             stock
           )
-        `
+        `,
       )
       .order("created_at", { ascending: false });
 
@@ -227,7 +227,7 @@ export async function updateProduct(productId, productData) {
 
       if (deleteError) {
         throw new Error(
-          `Failed to delete old variants: ${deleteError.message}`
+          `Failed to delete old variants: ${deleteError.message}`,
         );
       }
 
@@ -286,7 +286,7 @@ export async function getProductById(productId) {
             size,
             stock
           )
-        `
+        `,
       )
       .eq("id", productId)
       .single();
@@ -402,7 +402,7 @@ export async function getActiveProducts() {
             size,
             stock
           )
-        `
+        `,
       )
       .eq("status", "active")
       .order("created_at", { ascending: false });

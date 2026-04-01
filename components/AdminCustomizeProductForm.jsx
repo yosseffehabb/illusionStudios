@@ -32,9 +32,6 @@ import {
 import { useCategories } from "@/hooks/useCategories";
 import { PRODUCT_SIZE_TYPE, PRODUCT_STATUS } from "@/lib/constants";
 
-// ✅ Helper: extract URL string from image (object or string)
-const getImageUrl = (img) => (typeof img === "string" ? img : img?.url ?? "");
-
 export default function AdminCustomizeProductForm({ productId }) {
   const { data: product, isLoading, error } = useProductById(productId);
   const {
@@ -46,21 +43,16 @@ export default function AdminCustomizeProductForm({ productId }) {
   const deleteProductMutation = useDeleteProduct();
   const updateProductMutation = useUpdateProduct();
 
-  // existingImages holds the full objects [{url, publicId}] so we can delete properly
   const [existingImages, setExistingImages] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
   const [newPreviewUrls, setNewPreviewUrls] = useState([]);
   const replaceInputRef = useRef(null);
-  const imgArr = product?.images;
 
   function handleDelete(id) {
-    deleteProductMutation.mutate({
-      productId: id,
-      images: imgArr,
-    });
+    deleteProductMutation.mutate(id);
   }
 
-  // Sync existing images when product loads
+  // Sync existing images when product loads (deferred to avoid cascading renders)
   useEffect(() => {
     const images = product?.images?.length ? [...product.images] : [];
     const timer = setTimeout(() => {
@@ -106,7 +98,7 @@ export default function AdminCustomizeProductForm({ productId }) {
     const file = validFiles[0];
     const previewUrl = URL.createObjectURL(file);
     setExistingImages((prev) =>
-      prev.filter((_, i) => i !== parseInt(replaceIndex, 10))
+      prev.filter((_, i) => i !== parseInt(replaceIndex, 10)),
     );
     setNewFiles((prev) => [...prev, file]);
     setNewPreviewUrls((prev) => [...prev, previewUrl]);
@@ -141,11 +133,10 @@ export default function AdminCustomizeProductForm({ productId }) {
 
   // Reset form when product data loads
   useEffect(() => {
-    if (product && categories.length > 0) {
+    if (product) {
       const categoryId = product.category_id ?? product.category?.id ?? "";
       const sizeType = product.size_type ?? "";
       const status = product.status ?? "";
-
       reset({
         name: product.name ?? "",
         description: product.description ?? "",
@@ -164,7 +155,7 @@ export default function AdminCustomizeProductForm({ productId }) {
         images: product.images ?? [],
       });
     }
-  }, [product, categories, reset]);
+  }, [product, reset]);
 
   async function onSubmit(formData) {
     const totalImages = existingImages.length + newFiles.length;
@@ -176,7 +167,7 @@ export default function AdminCustomizeProductForm({ productId }) {
       await updateProductMutation.mutateAsync({
         productId,
         formData,
-        existingImageUrls: existingImages, // full objects [{url, publicId}]
+        existingImageUrls: existingImages,
         newImageFiles: newFiles,
       });
     } catch (error) {
@@ -326,7 +317,6 @@ export default function AdminCustomizeProductForm({ productId }) {
             )}
           </div>
         </div>
-
         {/* Category, Size Type, Status */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
           <div className="flex flex-col gap-1 w-full">
@@ -337,34 +327,27 @@ export default function AdminCustomizeProductForm({ productId }) {
               name="category_id"
               control={control}
               rules={{ required: "Category is required" }}
-              render={({ field }) => {
-                return (
-                  <Select
-                    key={`category-${product?.id}`}
-                    onValueChange={field.onChange}
-                    value={String(field.value || "")}
-                    defaultValue={String(field.value || "")}
-                    disabled={isCategoriesLoading}
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  value={String(field.value || "")}
+                  disabled={isCategoriesLoading}
+                >
+                  <SelectTrigger
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
+                    suppressHydrationWarning
                   >
-                    <SelectTrigger
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
-                      suppressHydrationWarning
-                    >
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem
-                          key={category.id}
-                          value={String(category.id)}
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }}
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={String(category.id)}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
             {errors.category_id && (
               <span className="text-xs text-red-500">
@@ -381,30 +364,26 @@ export default function AdminCustomizeProductForm({ productId }) {
               name="size_type"
               control={control}
               rules={{ required: "Size type is required" }}
-              render={({ field }) => {
-                return (
-                  <Select
-                    key={`size-type-${product?.id}`}
-                    onValueChange={field.onChange}
-                    value={String(field.value || "")}
-                    defaultValue={String(field.value || "")}
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  value={String(field.value || "")}
+                >
+                  <SelectTrigger
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
+                    suppressHydrationWarning
                   >
-                    <SelectTrigger
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
-                      suppressHydrationWarning
-                    >
-                      <SelectValue placeholder="Select Size Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRODUCT_SIZE_TYPE.map((pst) => (
-                        <SelectItem key={pst} value={pst}>
-                          {pst}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }}
+                    <SelectValue placeholder="Select Size Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_SIZE_TYPE.map((pst) => (
+                      <SelectItem key={pst} value={pst}>
+                        {pst}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
             {errors.size_type && (
               <span className="text-xs text-red-500">
@@ -421,30 +400,26 @@ export default function AdminCustomizeProductForm({ productId }) {
               name="status"
               control={control}
               rules={{ required: "Status is required" }}
-              render={({ field }) => {
-                return (
-                  <Select
-                    key={`status-${product?.id}`}
-                    onValueChange={field.onChange}
-                    value={String(field.value || "")}
-                    defaultValue={String(field.value || "")}
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  value={String(field.value || "")}
+                >
+                  <SelectTrigger
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
+                    suppressHydrationWarning
                   >
-                    <SelectTrigger
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primarygreen-500 bg-primarygreen-50 placeholder:text-neutral-400 transition-all duration-300"
-                      suppressHydrationWarning
-                    >
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRODUCT_STATUS.map((ps) => (
-                        <SelectItem key={ps} value={ps}>
-                          {ps}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }}
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_STATUS.map((ps) => (
+                      <SelectItem key={ps} value={ps}>
+                        {ps}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
             {errors.status && (
               <span className="text-xs text-red-500">
@@ -496,14 +471,13 @@ export default function AdminCustomizeProductForm({ productId }) {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* ✅ Extract .url for existing images */}
-              {existingImages.map((img, index) => (
+              {existingImages.map((url, index) => (
                 <div
                   key={`existing-${index}`}
                   className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group"
                 >
                   <Image
-                    src={getImageUrl(img)}
+                    src={url}
                     alt={`Product ${index + 1}`}
                     fill
                     className="object-cover"
@@ -528,8 +502,6 @@ export default function AdminCustomizeProductForm({ productId }) {
                   </div>
                 </div>
               ))}
-
-              {/* New preview images (already blob URLs) */}
               {newPreviewUrls.map((url, index) => (
                 <div
                   key={`new-${index}`}
