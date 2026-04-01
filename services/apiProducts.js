@@ -260,15 +260,6 @@ export async function updateProduct(productId, productData) {
 
 export async function getProductById(productId) {
   try {
-    const auth = await checkAdminAuth();
-    if (!auth.authorized) {
-      return {
-        success: false,
-        product: null,
-        error: auth.error,
-      };
-    }
-
     const supabase = await createClient();
 
     const { data: product, error } = await supabase
