@@ -18,20 +18,17 @@ import Image from "next/image";
 import React, { useState, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { useCart } from "@/contexts/CartContext";
+import toast from "react-hot-toast";
 
 /* ─────────────────────────────────────────
    Stagger animation helpers
 ───────────────────────────────────────── */
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1], delay },
-});
 
 const TRUST_BADGES = [
   { icon: ShieldCheckIcon, label: "Secure checkout" },
   { icon: RotateCcw, label: "30-day returns" },
-  { icon: Truck, label: "Free shipping" },
+  { icon: Truck, label: "shipping all over" },
 ];
 
 /* ─────────────────────────────────────────
@@ -44,9 +41,10 @@ export default function ClientProductView({ productId }) {
     error: isProductError,
   } = useProductById(productId);
 
+  const { addItem, getCartItem } = useCart();
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [liked, setLiked] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
@@ -66,38 +64,78 @@ export default function ClientProductView({ productId }) {
     ? product?.variants.find((v) => v.id === selectedVariant)
     : null;
 
+  const { exists: alreadyInCart, quantity: cartQuantity } = getCartItem(
+    product?.id ?? "",
+    activeVariant?.size ?? "",
+  );
+
+  const remainingStock = activeVariant
+    ? Math.max(0, activeVariant.stock - cartQuantity)
+    : 0;
+
   const isOutOfStock = activeVariant ? activeVariant.stock === 0 : false;
   const isLowStock = activeVariant
     ? activeVariant.stock > 0 && activeVariant.stock <= 5
     : false;
 
-  const maxQuantity = activeVariant?.stock ?? 99;
+  // FIX: maxQuantity is 0 when all stock is already in cart
+  const maxQuantity = activeVariant ? Math.max(0, remainingStock) : 99;
 
-  const handleQuantityDecrement = () => {
+  // True when the variant is selected but all available stock is already in cart
+  const isCartFull =
+    activeVariant !== null && !isOutOfStock && maxQuantity === 0;
+
+  function handleQuantityDecrement() {
     setQuantity((prev) => Math.max(1, prev - 1));
-  };
+  }
 
-  const handleQuantityIncrement = () => {
+  function handleQuantityIncrement() {
     setQuantity((prev) => Math.min(maxQuantity, prev + 1));
-  };
+  }
 
-  const handleQuantityInput = (e) => {
+  function handleQuantityInput(e) {
     const val = parseInt(e.target.value, 10);
     if (isNaN(val)) return setQuantity(1);
     setQuantity(Math.min(maxQuantity, Math.max(1, val)));
-  };
+  }
 
   // Reset quantity when variant changes
-  const handleVariantSelect = (variantId) => {
+  function handleVariantSelect(variantId) {
     setSelectedVariant(variantId);
     setQuantity(1);
-  };
+  }
 
-  const handleAddToCart = () => {
+  function handleAddToCart() {
     if (!selectedVariant) return;
+
+    // Guard: total after adding must not exceed stock
+    if (cartQuantity + quantity > activeVariant.stock) {
+      toast.error(
+        cartQuantity > 0
+          ? `Only ${activeVariant.stock - cartQuantity} left to add (${cartQuantity} already in cart)`
+          : `Only ${activeVariant.stock} in stock`,
+      );
+      return;
+    }
+
+    const item = {
+      product_id: product.id,
+      product_name: product.name,
+      product_color: product.color,
+      product_sku: product.sku,
+      size: activeVariant.size,
+      sizeId: activeVariant.id,
+      unit_price: product.price,
+      discount: product.discount,
+      images: product.images,
+      stock_quantity: activeVariant.stock,
+      quantity,
+    };
+
+    addItem(item);
     setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2200);
-  };
+    setTimeout(() => setAddedToCart(false), 1500);
+  }
 
   const handleMouseMove = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -141,9 +179,14 @@ export default function ClientProductView({ productId }) {
   const stockLabel = activeVariant
     ? isOutOfStock
       ? { text: "Out of stock", color: "text-red-500" }
-      : isLowStock
-        ? { text: `Only ${activeVariant.stock} left`, color: "text-amber-500" }
-        : { text: `${activeVariant.stock} in stock`, color: "text-emerald-600" }
+      : isCartFull
+        ? { text: "All stock in cart", color: "text-amber-500" }
+        : isLowStock
+          ? {
+              text: `Only ${activeVariant.stock} left`,
+              color: "text-amber-500",
+            }
+          : null
     : null;
 
   /* ── Add-to-cart button label ── */
@@ -151,9 +194,13 @@ export default function ClientProductView({ productId }) {
     ? "Select a size"
     : isOutOfStock
       ? "Out of Stock"
-      : addedToCart
-        ? `Added ${quantity} to cart ✓`
-        : `Add ${quantity > 1 ? `${quantity} items` : "to Cart"}`;
+      : isCartFull
+        ? "All Stock Added"
+        : addedToCart
+          ? `Added ${quantity} ✓`
+          : alreadyInCart
+            ? `Add ${quantity > 1 ? `${quantity} more` : "one more"} · ${cartQuantity} in cart`
+            : `Add ${quantity > 1 ? `${quantity} items` : "to Cart"}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,7 +339,7 @@ export default function ClientProductView({ productId }) {
             >
               {priceAfterDiscount ? (
                 <>
-                  <span className="text-3xl font-extrabold text-foreground tracking-tight text-primarygreen-700">
+                  <span className="text-3xl font-extrabold tracking-tight text-primarygreen-700">
                     {priceAfterDiscount} L.E
                   </span>
                   <span className="text-lg text-neutral-400 line-through">
@@ -384,7 +431,12 @@ export default function ClientProductView({ productId }) {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={handleQuantityDecrement}
-                    disabled={quantity <= 1 || !selectedVariant || isOutOfStock}
+                    disabled={
+                      quantity <= 1 ||
+                      !selectedVariant ||
+                      isOutOfStock ||
+                      isCartFull
+                    }
                     className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-muted/60 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Decrease quantity"
                   >
@@ -397,10 +449,10 @@ export default function ClientProductView({ productId }) {
                     type="number"
                     min={1}
                     max={maxQuantity}
-                    value={quantity}
+                    value={isCartFull ? 0 : quantity}
                     onChange={handleQuantityInput}
-                    disabled={!selectedVariant || isOutOfStock}
-                    className="w-14 h-11 text-center text-sm font-bold text-neutral-400 bg-transparent focus:outline-none disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none "
+                    disabled={!selectedVariant || isOutOfStock || isCartFull}
+                    className="w-14 h-11 text-center text-sm font-bold text-neutral-400 bg-transparent focus:outline-none disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     aria-label="Quantity"
                   />
 
@@ -410,9 +462,10 @@ export default function ClientProductView({ productId }) {
                     whileTap={{ scale: 0.9 }}
                     onClick={handleQuantityIncrement}
                     disabled={
-                      quantity >= maxQuantity ||
                       !selectedVariant ||
-                      isOutOfStock
+                      isOutOfStock ||
+                      isCartFull ||
+                      quantity >= maxQuantity
                     }
                     className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-muted/60 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Increase quantity"
@@ -421,6 +474,21 @@ export default function ClientProductView({ productId }) {
                   </motion.button>
                 </div>
               </div>
+              <AnimatePresence>
+                {alreadyInCart && activeVariant && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs text-primarygreen-700 font-medium"
+                  >
+                    {isCartFull
+                      ? `All ${activeVariant.stock} in stock are in your cart`
+                      : `${cartQuantity} already in cart · ${remainingStock} remaining`}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </motion.div>
 
             {/* Divider */}
@@ -444,12 +512,12 @@ export default function ClientProductView({ productId }) {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
-                disabled={!selectedVariant || isOutOfStock}
+                disabled={!selectedVariant || isOutOfStock || isCartFull}
                 className={`flex-1 h-13 text-[15px] font-bold rounded-2xl transition-all duration-300 cursor-pointer text-primarygreen-100 tracking-wide bg-primarygreen-700
                   ${
                     addedToCart
                       ? "bg-emerald-600 text-white shadow-[0_4px_24px_rgba(16,185,129,0.35)]"
-                      : !selectedVariant || isOutOfStock
+                      : !selectedVariant || isOutOfStock || isCartFull
                         ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                         : ""
                   }
@@ -475,3 +543,9 @@ export default function ClientProductView({ productId }) {
     </div>
   );
 }
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+  transition: { duration: 0.35, delay, ease: "easeOut" },
+});

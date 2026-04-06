@@ -4,9 +4,13 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 import { GlitchText } from "./hero/GlitchText";
+import { useCart } from "@/contexts/CartContext";
+import Link from "next/link";
 
 function AdminHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { totalItems } = useCart();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -33,11 +37,14 @@ function AdminHeader() {
               </h1>
             </div>
 
-            <button className="flex items-center gap-0 font-mono text-sm tracking-widest text-primarygreen-500 font-semibold hover:text-primarygreen-900 transition-all duration-300">
+            <Link
+              href="/shop/cart"
+              className="flex items-center gap-0 font-mono text-sm tracking-widest text-primarygreen-500 font-semibold hover:text-primarygreen-900 transition-all duration-300"
+            >
               <span className="">[</span>
-              <span className="min-w-6 text-center ">3</span>
+              <span className="min-w-6 text-center ">{totalItems}</span>
               <span className="">]</span>
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -70,20 +77,25 @@ function AdminHeader() {
         </div>
 
         <div className="flex flex-col mt-8 px-6 gap-6 ">
-          {["HOME", "SHOP", "CART [ x ]", "SALE", "Contact", "SIZE CHARTS"].map(
-            (item) => (
-              <a
-                key={item}
-                href="#"
-                className="text-muted-foreground hover:text-primarygreen-300 text-sm tracking-[0.25em] uppercase transition-colors font-mono"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                {item}
-              </a>
-            ),
-          )}
+          {[
+            "HOME",
+            "SHOP",
+            `CART [ ${totalItems} ]`,
+            "SALE",
+            "Contact",
+            "SIZE CHARTS",
+          ].map((item) => (
+            <a
+              key={item}
+              href="shop/cart"
+              className="text-muted-foreground hover:text-primarygreen-300 text-sm tracking-[0.25em] uppercase transition-colors font-mono"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              {item}
+            </a>
+          ))}
         </div>
       </nav>
     </div>

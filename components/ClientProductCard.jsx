@@ -8,7 +8,6 @@ import SignatureButton from "./SignatureButton";
 const LOW_STOCK_TOTAL = 5; // card-level "low" threshold
 
 export default function ClientProductCard({ product }) {
-
   // ── image carousel state ─────────────────────────────────────────────────
   const [imgIdx, setImgIdx] = useState(0);
 
@@ -48,7 +47,6 @@ export default function ClientProductCard({ product }) {
 
   return (
     <div className="group flex flex-col rounded-xl overflow-hidden border border-primarygreen-700/40 bg-primarygreen-900 shadow-2xl hover:shadow-xl transition-shadow duration-300 pb-3.5">
-
       {/* ── IMAGE SECTION ─────────────────────────────────────────────────── */}
       <div className="relative w-full" style={{ aspectRatio: "4 / 5" }}>
         {images.length > 0 ? (
@@ -118,7 +116,11 @@ export default function ClientProductCard({ product }) {
               {images.map((_, i) => (
                 <button
                   key={i}
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); goTo(i); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    goTo(i);
+                  }}
                   aria-label={`Go to image ${i + 1}`}
                   className={cn(
                     "h-1.5 rounded-full transition-all duration-300",
@@ -135,7 +137,6 @@ export default function ClientProductCard({ product }) {
 
       {/* ── BODY ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 p-3 sm:p-4 gap-3">
-
         {/* Name / color / price */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -164,8 +165,6 @@ export default function ClientProductCard({ product }) {
             )}
           </div>
         </div>
-
-       
       </div>
 
       {/* ── FOOTER CTA ────────────────────────────────────────────────────── */}
