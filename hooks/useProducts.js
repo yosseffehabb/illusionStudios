@@ -90,6 +90,7 @@ export function useAddProduct() {
 
   return useMutation({
     mutationFn: async ({ formData, imageFiles }) => {
+      // ✅ 1. process data
       const proccessedProductData = {
         ...formData,
         price: parseFloat(formData.price),
@@ -100,44 +101,69 @@ export function useAddProduct() {
         })),
       };
 
-      // 3. Call API to create product
-      const result = await addNewProduct(proccessedProductData, imageFiles);
+      let uploadedImages = [];
 
-      if (!result?.success) {
-        throw new Error(result?.error || "Failed to add product");
+      try {
+        // ✅ 2. upload images
+        if (imageFiles && imageFiles.length > 0) {
+          uploadedImages = await uploadImagesToCloudinary(imageFiles);
+        }
+
+        // ✅ 3. combine data
+        const finalProduct = {
+          ...proccessedProductData,
+          images: uploadedImages, // [{url, publicId}]
+        };
+
+        // ✅ 4. send to backend
+        const result = await addNewProduct(finalProduct);
+
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to add product");
+        }
+
+        return result.product;
+      } catch (error) {
+        // 💣 rollback uploaded images لو حصل fail
+        if (uploadedImages.length > 0) {
+          try {
+            await deleteImagesFromCloudinary(
+              uploadedImages.map((img) => img.publicId),
+            );
+          } catch (cleanupError) {
+            console.error("Cleanup failed:", cleanupError);
+          }
+        }
+
+        throw error;
       }
-
-      return result.product;
     },
 
-    onMutate: async (newProduct) => {
-      // Cancel outgoing queries
+    onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ProductKeys.list() });
 
-      // Snapshot previous value
       const previousProducts = queryClient.getQueryData(ProductKeys.list());
 
       return { previousProducts };
     },
 
     onError: (error, _variables, context) => {
-      // Rollback on error
       if (context?.previousProducts) {
         queryClient.setQueryData(ProductKeys.list(), context.previousProducts);
       }
+
       console.error("Product creation failed:", error);
       toast.error(error?.message || "Failed to create product");
     },
 
     onSuccess: () => {
-      // Refetch to get real server data
       queryClient.invalidateQueries({ queryKey: ProductKeys.all });
+
       toast.success("Product added successfully");
       router.push("/admin/products");
     },
   });
 }
-
 /* ================================
    Update Product
 ================================ */
