@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -18,6 +19,7 @@ const fadeUp = (delay = 0) => ({
 });
 
 function Page() {
+  const router = useRouter();
   const {
     subtotal,
     cart,
@@ -258,7 +260,8 @@ function Page() {
                   </div>
 
                   <Button
-                    onClick={() => console.log(cart)}
+                    onClick={() => router.push("/shop/checkout")}
+                    disabled={cart.length === 0}
                     className="w-full py-5 text-sm font-semibold sm:py-6 sm:text-base bg-primarygreen-700 text-primarygreen-50"
                     size="lg"
                   >

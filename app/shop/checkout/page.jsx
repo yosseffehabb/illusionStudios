@@ -24,11 +24,12 @@ export default function CheckoutPage() {
   const total = (subtotal || 0) + shippingFee;
 
   async function onSubmit(data) {
-    const address = `${data.street}, ${data.city}`;
+    const address = `${data.street}, ${data.city}, ${data.governorate}`;
+    const normalizedPhone = `+20${data.phone}`;
 
     const orderPayload = {
       customer_name: `${data.firstName} ${data.lastName}`,
-      customer_phone: data.phone,
+      customer_phone: normalizedPhone,
       customer_address: address,
       notes: data.notes || null,
       cart,
@@ -41,7 +42,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <h1 className="text-2xl sm:text-2xl font-bold text-primarygreen-500 text-center tracking-wider uppercase pt-8">
-        Your Cart
+        Checkout
       </h1>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -106,20 +107,27 @@ export default function CheckoutPage() {
                   <label className="block text-sm font-medium text-foreground mb-2">
                     Phone Number <span className="text-red-500">*</span>
                   </label>
-                  <Input
-                    type="tel"
-                    placeholder="01012345678"
-                    {...register("phone", {
-                      required: "Phone number is required",
-                      pattern: {
-                        value: /^[0-9+\s\-()]{7,15}$/,
-                        message: "Enter a valid phone number",
-                      },
-                    })}
-                    className={`rounded-lg focus-visible:ring-primarygreen-500 ${
-                      errors.phone ? "border-red-500" : ""
-                    }`}
-                  />
+                  <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-primarygreen-500">
+                    <span className="px-3 text-sm font-medium text-foreground border-r border-border">
+                      +20
+                    </span>
+                    <Input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="1012345678"
+                      {...register("phone", {
+                        required: "Phone number is required",
+                        pattern: {
+                          value: /^1[0125][0-9]{8}$/,
+                          message:
+                            "Enter a valid Egyptian mobile number (10 digits after +20)",
+                        },
+                      })}
+                      className={`rounded-l-none border-0 focus-visible:ring-0 ${
+                        errors.phone ? "border-red-500" : ""
+                      }`}
+                    />
+                  </div>
                   {errors.phone && (
                     <p className="text-red-500 text-xs mt-2">
                       {errors.phone.message}
