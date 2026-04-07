@@ -228,7 +228,7 @@ export function useDeleteProduct() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: async ({ productId, images }) => {
+    mutationFn: async (productId, images) => {
       // The server action handles both Cloudinary deletion and DB deletion
       const result = await deleteProduct(productId, images);
 
