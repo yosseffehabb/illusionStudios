@@ -33,7 +33,7 @@ function Page() {
 
   console.log(cart);
 
-  /////////////// actions//////////////
+  /////////////// actions/////////////////
 
   function handleDeleteItem({ productid, size }) {
     deleteItem(productid, size);
