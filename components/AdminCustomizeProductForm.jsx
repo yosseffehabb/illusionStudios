@@ -460,7 +460,6 @@ export default function AdminCustomizeProductForm({ productId }) {
               />
             </div>
           </div>
-
           {existingImages.length === 0 && newPreviewUrls.length === 0 ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
@@ -471,60 +470,70 @@ export default function AdminCustomizeProductForm({ productId }) {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {existingImages.map((url, index) => (
-                <div
-                  key={`existing-${index}`}
-                  className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group"
-                >
-                  <Image
-                    src={url}
-                    alt={`Product ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => replaceExistingImage(index)}
-                      className="p-2 bg-white text-primarygreen-600 rounded-full hover:bg-primarygreen-50 transition-colors"
-                      title="Replace image"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeExistingImage(index)}
-                      className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
-                      title="Remove image"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+              {/* existing images */}
+              {existingImages
+                .filter((img) => img?.url) // ✅ مهم
+                .map((img, index) => (
+                  <div
+                    key={`existing-${index}`}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group"
+                  >
+                    <Image
+                      src={img.url} // ✅ fix هنا
+                      alt={`Product ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => replaceExistingImage(index)}
+                        className="p-2 bg-white text-primarygreen-600 rounded-full hover:bg-primarygreen-50 transition-colors"
+                        title="Replace image"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(index)}
+                        className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                        title="Remove image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {newPreviewUrls.map((url, index) => (
-                <div
-                  key={`new-${index}`}
-                  className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group"
-                >
-                  <Image
-                    src={url}
-                    alt={`New ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={() => removeNewImage(index)}
-                      className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
-                      title="Remove image"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                ))}
+
+              {/* new preview images */}
+              {newPreviewUrls
+                .filter(Boolean) // ✅ مهم
+                .map((url, index) => (
+                  <div
+                    key={`new-${index}`}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group"
+                  >
+                    <Image
+                      src={url}
+                      alt={`New ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(index)}
+                        className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                        title="Remove image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
           <p className="text-xs text-gray-500">

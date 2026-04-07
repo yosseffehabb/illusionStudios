@@ -50,6 +50,8 @@ export default function ClientProductView({ productId }) {
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [quantity, setQuantity] = useState(1);
 
+  const hasDiscount = product?.discount > 0;
+
   const priceAfterDiscount =
     product?.discount > 0
       ? (product?.price * (1 - product?.discount / 100)).toFixed(2)
@@ -337,7 +339,7 @@ export default function ClientProductView({ productId }) {
               {...fadeUp(0.22)}
               className="flex items-baseline gap-3 flex-wrap"
             >
-              {priceAfterDiscount ? (
+              {hasDiscount ? (
                 <>
                   <span className="text-3xl font-extrabold tracking-tight text-primarygreen-700">
                     {priceAfterDiscount} L.E
@@ -350,7 +352,7 @@ export default function ClientProductView({ productId }) {
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                <span className="text-3xl font-extrabold text-primarygreen-700 tracking-tight">
                   {product.price.toFixed(2)} L.E
                 </span>
               )}

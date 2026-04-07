@@ -17,10 +17,6 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.35, delay, ease: "easeOut" },
 });
 
-const increase = (item) => console.log("increase", item);
-const decrease = (item) => console.log("decrease", item);
-const remove = (item) => console.log("remove", item);
-
 function Page() {
   const {
     subtotal,
@@ -31,10 +27,6 @@ function Page() {
     totalItems,
   } = useCart();
 
-  console.log(cart);
-
-  /////////////// actions/////////////////
-
   function handleDeleteItem({ productid, size }) {
     deleteItem(productid, size);
   }
@@ -44,7 +36,6 @@ function Page() {
   function handleDecItem({ productid, size }) {
     decrementQuantity(productid, size);
   }
-  function handleClearCart() {}
 
   if (!cart.length) {
     return (
@@ -131,15 +122,29 @@ function Page() {
                         </div>
 
                         <div className="mt-2 flex items-center justify-between sm:mt-3">
-                          <p className="text-sm font-bold text-primarygreen-700 sm:text-lg md:text-xl">
-                            {(item.unit_price * item.quantity).toLocaleString()}{" "}
-                            LE
-                          </p>
+                          <div className="flex flex-col">
+                            <p className="text-sm font-bold text-primarygreen-700 sm:text-lg md:text-xl">
+                              {(
+                                Math.round(
+                                  item.unit_price *
+                                    (1 - (item.discount || 0) / 100),
+                                ) * item.quantity
+                              ).toLocaleString()}{" "}
+                              LE
+                            </p>
+                            {item.discount > 0 && (
+                              <p className="text-xs line-through text-muted-foreground">
+                                {(
+                                  item.unit_price * item.quantity
+                                ).toLocaleString()}{" "}
+                                LE
+                              </p>
+                            )}
+                          </div>
 
                           <div className="flex items-center gap-0.5 rounded-full border p-0.5 shadow-sm sm:gap-1 bg-primarygreen-700 text-primarygreen-50">
                             <button
-                              className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-primarygreen-100 sm:h-8 sm:w-8 hover:text-primarygreen-700 transition-all duration-300
-                            "
+                              className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-primarygreen-100 sm:h-8 sm:w-8 hover:text-primarygreen-700 transition-all duration-300"
                               onClick={() =>
                                 handleDecItem({
                                   productid: item.product_id,
@@ -193,25 +198,35 @@ function Page() {
                 </CardHeader>
 
                 <CardContent className="space-y-3 px-3 sm:space-y-4 sm:px-6">
-                  {cart.map((item) => (
-                    <div
-                      key={`${item.product_id}-${item.size}`}
-                      className="space-y-0.5"
-                    >
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-muted-foreground line-clamp-1 max-w-[60%]">
-                          {item.product_name} × {item.quantity}
-                        </span>
-                        <span className="font-medium">
-                          {(item.unit_price * item.quantity).toLocaleString()}{" "}
-                          LE
-                        </span>
+                  {cart.map((item) => {
+                    const effectivePrice = Math.round(
+                      item.unit_price * (1 - (item.discount || 0) / 100),
+                    );
+                    const lineTotal = effectivePrice * item.quantity;
+                    return (
+                      <div
+                        key={`${item.product_id}-${item.size}`}
+                        className="space-y-0.5"
+                      >
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <span className="text-muted-foreground line-clamp-1 max-w-[60%]">
+                            {item.product_name} × {item.quantity}
+                          </span>
+                          <span className="font-medium">
+                            {lineTotal.toLocaleString()} LE
+                          </span>
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground/60">
+                          {effectivePrice.toLocaleString()} × {item.quantity}
+                          {item.discount > 0 && (
+                            <span className="ml-1 text-green-600">
+                              (-{item.discount}%)
+                            </span>
+                          )}
+                        </p>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground/60">
-                        {item.unit_price.toLocaleString()} × {item.quantity}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   <Separator />
 
@@ -243,6 +258,7 @@ function Page() {
                   </div>
 
                   <Button
+                    onClick={() => console.log(cart)}
                     className="w-full py-5 text-sm font-semibold sm:py-6 sm:text-base bg-primarygreen-700 text-primarygreen-50"
                     size="lg"
                   >
@@ -260,56 +276,3 @@ function Page() {
 }
 
 export default Page;
-
-// const cartItems = [
-//     {
-//       product_id: "8d5248ef-e597-4dcd-bc55-436179402d10",
-//       product_name: "Washed olive jeans",
-//       product_sku: "PRD-778736",
-//       product_color: "olive green",
-
-//       size: "30",
-//       sizeId: "fd537bec-7050-4710-b852-43d4881c90f2",
-
-//       quantity: 4,
-//       stock_quantity: 11,
-
-//       unit_price: 800,
-//       discount: 10,
-
-//       images: [
-//         {
-//           publicId: "qy2jly99xr7xcjcdpomn",
-//           url: "https://res.cloudinary.com/daczw3asf/image/upload/v1773784226/qy2jly99xr7xcjcdpomn.jpg",
-//         },
-//         {
-//           publicId: "phxm8bxnau3iyfze1wda",
-//           url: "https://res.cloudinary.com/daczw3asf/image/upload/v1773784226/phxm8bxnau3iyfze1wda.jpg",
-//         },
-//         {
-//           publicId: "yat75z5odffosa2miygt",
-//           url: "https://res.cloudinary.com/daczw3asf/image/upload/v1773784226/yat75z5odffosa2miygt.jpg",
-//         },
-//       ],
-//     },
-
-//     {
-//       product_id: "c08d9973-18fc-455d-8b37-425fc5a77170",
-//       product_name: "washed gray denim",
-//       product_sku: "PRD-491101",
-//       product_color: "gray",
-
-//       size: "32",
-//       // sizeId: "...",
-
-//       quantity: 1, // (you didn’t include it but لازم تحطه)
-//       stock_quantity: 10, // (guess — replace with real)
-
-//       unit_price: 750,
-//       discount: 0,
-
-//       images: [
-//         // add images here if موجودة
-//       ],
-//     },
-//   ];

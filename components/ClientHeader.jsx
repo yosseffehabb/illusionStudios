@@ -16,6 +16,14 @@ function AdminHeader() {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const routes = [
+    { label: "HOME", path: "/" },
+    { label: "SHOP", path: "/shop" },
+    { label: `CART [ ${totalItems} ]`, path: "shop/cart" },
+    { label: "SALE", path: "" },
+    { label: "Contact", path: "" },
+  ];
+
   return (
     <div>
       <nav className="fixed z-50 w-full border-b border-neutral-200 bg-neutral-50 backdrop-blur-md">
@@ -77,24 +85,17 @@ function AdminHeader() {
         </div>
 
         <div className="flex flex-col mt-8 px-6 gap-6 ">
-          {[
-            "HOME",
-            "SHOP",
-            `CART [ ${totalItems} ]`,
-            "SALE",
-            "Contact",
-            "SIZE CHARTS",
-          ].map((item) => (
-            <a
-              key={item}
-              href="shop/cart"
+          {routes.map((route) => (
+            <Link
+              key={route.label}
+              href={route.path}
               className="text-muted-foreground hover:text-primarygreen-300 text-sm tracking-[0.25em] uppercase transition-colors font-mono"
               onClick={() => {
                 setIsMobileMenuOpen(false);
               }}
             >
-              {item}
-            </a>
+              {route.label}
+            </Link>
           ))}
         </div>
       </nav>
