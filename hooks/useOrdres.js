@@ -14,9 +14,12 @@ import {
   getOrderByNumber,
   updateOrderStatus as updateOrderStatusAction,
   deleteOrder as deleteOrderAction,
+  placeOrder,
+  addOrder,
 } from "@/services/apiOrders";
 import { orderKeys } from "@/lib/orderKeys";
 import { CACHE_TIMES } from "@/lib/constants";
+import toast from "react-hot-toast";
 
 // ============================================
 // ADMIN HOOKS
@@ -68,7 +71,10 @@ export function useSearchOrders(searchQuery, filters = {}, options = {}) {
   return useQuery({
     queryKey: orderKeys.search(searchQuery, normalizedFilters),
     queryFn: async () => {
-      const result = await searchOrdersPaginated(searchQuery, normalizedFilters);
+      const result = await searchOrdersPaginated(
+        searchQuery,
+        normalizedFilters,
+      );
 
       if (!result?.success) {
         throw new Error(result?.error || "Failed to search orders");
@@ -77,7 +83,10 @@ export function useSearchOrders(searchQuery, filters = {}, options = {}) {
       return result.orders;
     },
     // Force enabled to always be a strict boolean
-    enabled: Boolean(options.enabled ?? true) && !!searchQuery && searchQuery.length > 0,
+    enabled:
+      Boolean(options.enabled ?? true) &&
+      !!searchQuery &&
+      searchQuery.length > 0,
     staleTime: CACHE_TIMES.SEARCH.STALE_TIME,
     gcTime: CACHE_TIMES.SEARCH.GC_TIME,
   });
@@ -230,7 +239,7 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, newStatus }) => {
+    mutationFn: async (orderId, newStatus) => {
       const result = await updateOrderStatusAction(orderId, newStatus);
 
       if (!result?.success) {
@@ -240,7 +249,7 @@ export function useUpdateOrderStatus() {
       return result.order;
     },
 
-    onMutate: async ({ orderId, newStatus }) => {
+    onMutate: async (orderId, newStatus) => {
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: orderKeys.all });
 
@@ -266,11 +275,11 @@ export function useUpdateOrderStatus() {
                       status: newStatus,
                       updated_at: new Date().toISOString(),
                     }
-                  : order
+                  : order,
               ),
             })),
           };
-        }
+        },
       );
 
       // Optimistically update search queries
@@ -286,9 +295,9 @@ export function useUpdateOrderStatus() {
                   status: newStatus,
                   updated_at: new Date().toISOString(),
                 }
-              : order
+              : order,
           );
-        }
+        },
       );
 
       return { previousInfiniteQueries };
@@ -350,7 +359,7 @@ export function useDeleteOrder() {
               totalCount: page.totalCount - 1,
             })),
           };
-        }
+        },
       );
 
       // Optimistically remove from search queries
@@ -359,7 +368,7 @@ export function useDeleteOrder() {
         (oldData) => {
           if (!Array.isArray(oldData)) return oldData;
           return oldData.filter((order) => order.id !== orderId);
-        }
+        },
       );
 
       return { previousInfiniteQueries };
@@ -380,3 +389,77 @@ export function useDeleteOrder() {
     },
   });
 }
+
+/**
+ * Place a new order mutation (Public - Customer facing)
+ */
+
+export function usePlaceOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderData) => {
+      const result = await addOrder(orderData);
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to place order");
+      }
+
+      return result.order;
+    },
+
+    onSuccess: (newOrder) => {
+      // Invalidate admin-facing queries so new order appears
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.stats() });
+
+      // If the customer's phone is available, invalidate their orders list too
+      if (newOrder?.customer_phone) {
+        queryClient.invalidateQueries({
+          queryKey: orderKeys.byPhone(newOrder.customer_phone),
+        });
+      }
+
+      toast.success("Order placed successfully!");
+    },
+
+    onError: (error) => {
+      console.error("Failed to place order:", error);
+      toast.error(error.message || "Failed to place order. Please try again.");
+    },
+  });
+}
+
+// export function usePlaceOrder() {
+//   return useMutation({
+//     mutationFn: async (data) => {
+//       const address = `${data.street}, ${data.city}, ${data.governorate}`;
+//       const normalizedPhone = `+20${data.customer_phone}`;
+//       const fullname = `${data.first_name} ${data.last_name}`;
+
+//       const mappedItems = data.items.map((item) => ({
+//         productId: item.product_id,
+//         size: item.size,
+//         quantity: item.quantity,
+//       }));
+
+//       const formStructure = {
+//         customer_name: fullname,
+//         customer_phone: normalizedPhone,
+//         customer_address: address,
+//         shipping_fee: data.shippingFee,
+//         notes: data.notes,
+//         items: mappedItems,
+//       };
+
+//       const result = await placeOrder(formStructure);
+
+//       if (!result?.success) {
+//         toast.error(result?.error || "error");
+//         throw new Error(result?.error || "Failed to place order");
+//       }
+
+//       return result.order;
+//     },
+//   });
+// }

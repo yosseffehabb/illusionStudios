@@ -607,6 +607,198 @@ export async function deleteOrder(orderId) {
   }
 }
 
+/**
+ * PUBLIC: Place a new order (customer-facing)
+ * Rate-limited to prevent abuse
+ */
+export async function addOrder(orderData) {
+  try {
+    const {
+      customer_name,
+      customer_phone,
+      customer_address,
+      notes = "",
+      shipping_fee: shippingFee = 0,
+      items,
+    } = orderData;
+
+    // Validation
+    if (!customer_name?.trim())
+      return { success: false, error: "Customer name is required" };
+    if (!customer_phone || !isValidPhone(customer_phone))
+      return { success: false, error: "A valid phone number is required" };
+    if (!customer_address?.trim())
+      return { success: false, error: "Delivery address is required" };
+    if (!Array.isArray(items) || items.length === 0)
+      return { success: false, error: "Order must contain at least one item" };
+
+    for (const item of items) {
+      if (!item.product_id)
+        return { success: false, error: "Each item must have a product_id" };
+      if (!item.size)
+        return { success: false, error: "Each item must have a size" };
+      if (!item.quantity || item.quantity < 1)
+        return { success: false, error: "Each item must have a quantity ≥ 1" };
+    }
+
+    const normalizedItems = items.map((i) => ({
+      ...i,
+      size: String(i.size).trim(),
+    }));
+
+    const sanitizedPhone = sanitizePhone(customer_phone);
+    const limit = rateLimit(
+      `place_order:${sanitizedPhone}`,
+      RATE_LIMITS.PUBLIC_PHONE_SEARCH?.MAX_REQUESTS ?? 10,
+      RATE_LIMITS.PUBLIC_PHONE_SEARCH?.WINDOW_MS ?? 60_000,
+    );
+    if (!limit.allowed) {
+      return {
+        success: false,
+        error: `Too many requests. Please try again in ${limit.retryAfter} seconds.`,
+      };
+    }
+
+    const supabase = await createClient();
+
+    const productIds = [...new Set(normalizedItems.map((i) => i.product_id))];
+
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, name, sku, color, price, discount, status")
+      .in("id", productIds)
+      .eq("status", "active");
+
+    if (productsError) throw productsError;
+
+    if (products.length !== productIds.length)
+      return { success: false, error: "One or more products are unavailable" };
+
+    const productMap = Object.fromEntries(products.map((p) => [p.id, p]));
+
+    const { data: variants, error: variantsError } = await supabase
+      .from("product_variants")
+      .select("id, product_id, size, stock")
+      .in("product_id", productIds);
+
+    if (variantsError) throw variantsError;
+
+    const variantMap = Object.fromEntries(
+      variants.map((v) => [`${v.product_id}|${String(v.size).trim()}`, v]),
+    );
+
+    const orderItemsPayload = [];
+    let subtotal = 0;
+
+    for (const item of normalizedItems) {
+      const product = productMap[item.product_id];
+      const variant = variantMap[`${item.product_id}|${item.size}`];
+
+      if (!variant) {
+        return {
+          success: false,
+          error: `Size "${item.size}" is not available for "${product.name}"`,
+        };
+      }
+      if (variant.stock < item.quantity) {
+        return {
+          success: false,
+          error: `Insufficient stock for "${product.name}" (size ${item.size}). Available: ${variant.stock}`,
+        };
+      }
+
+      const discount = item.discount ?? product.discount ?? 0;
+      const unitPrice = Number(item.unit_price ?? product.price);
+      const itemSubtotal = +(
+        unitPrice *
+        (1 - discount / 100) *
+        item.quantity
+      ).toFixed(2);
+      subtotal += itemSubtotal;
+
+      orderItemsPayload.push({
+        product_id: item.product_id,
+        product_name: item.product_name ?? product.name,
+        product_color: item.product_color ?? product.color,
+        product_sku: item.product_sku ?? product.sku,
+        size: item.size,
+        quantity: item.quantity,
+        unit_price: unitPrice,
+        discount,
+        subtotal: itemSubtotal,
+      });
+    }
+
+    subtotal = +subtotal.toFixed(2);
+    const normalizedShippingFee = +Number(shippingFee).toFixed(2);
+    const totalPrice = +(subtotal + normalizedShippingFee).toFixed(2);
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        customer_name: customer_name.trim(),
+        customer_phone: sanitizedPhone,
+        customer_address: customer_address.trim(),
+        notes: notes?.trim() || null,
+        subtotal,
+        shipping_fee: normalizedShippingFee,
+        total_price: totalPrice,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    const itemsWithOrderId = orderItemsPayload.map((item) => ({
+      ...item,
+      order_id: order.id,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(itemsWithOrderId);
+
+    if (itemsError) {
+      await supabase
+        .from("orders")
+        .update({ status: "cancelled" })
+        .eq("id", order.id);
+
+      return {
+        success: false,
+        error: itemsError.message ?? "Failed to place order. Please try again.",
+      };
+    }
+
+    await supabase.from("customers").upsert(
+      {
+        phone: sanitizedPhone,
+        name: customer_name.trim(),
+        address: customer_address.trim(),
+      },
+      { onConflict: "phone", ignoreDuplicates: false },
+    );
+
+    revalidatePath("/");
+
+    return {
+      success: true,
+      order: {
+        id: order.id,
+        order_number: order.order_number,
+        status: order.status,
+        total_price: order.total_price,
+      },
+    };
+  } catch (error) {
+    console.error("Error placing order:", error);
+    return {
+      success: false,
+      error: error.message ?? "Unable to place order. Please try again later.",
+    };
+  }
+}
 // ============================================
 // LEGACY FUNCTIONS (For backward compatibility)
 // ============================================

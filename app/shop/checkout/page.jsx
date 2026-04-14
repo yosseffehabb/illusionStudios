@@ -3,21 +3,35 @@
 import { useCart } from "@/contexts/CartContext";
 import { GOVERNORATES } from "@/lib/constants";
 import React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { usePlaceOrder } from "@/hooks/useOrdres";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const {
     register,
     reset,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     watch,
   } = useForm();
 
-  const { cart, subtotal } = useCart();
+  const { mutateAsync: placeOrderMutation, isPending } = usePlaceOrder();
+
+  const { cart, subtotal, clearCart } = useCart();
   const selectedGovernorate = watch("governorate");
   const shippingFee =
     GOVERNORATES.find((g) => g.name === selectedGovernorate)?.shipping_fee || 0;
@@ -25,17 +39,31 @@ export default function CheckoutPage() {
 
   async function onSubmit(data) {
     const address = `${data.street}, ${data.city}, ${data.governorate}`;
-    const normalizedPhone = `+20${data.phone}`;
+    const normalizedPhone = `+20${data.customer_phone}`;
+    const fullname = `${data.first_name} ${data.last_name}`;
 
-    const orderPayload = {
-      customer_name: `${data.firstName} ${data.lastName}`,
+    const mappedItems = cart.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      product_color: item.product_color,
+      product_sku: item.product_sku,
+      size: item.size,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount: item.discount,
+    }));
+
+    const orderData = {
+      customer_name: fullname,
       customer_phone: normalizedPhone,
       customer_address: address,
-      notes: data.notes || null,
-      cart,
+      notes: data.notes,
+      shipping_fee: shippingFee,
+      items: mappedItems,
     };
-
-    console.log("Order payload:", orderPayload);
+    placeOrderMutation(orderData);
+    clearCart();
+    router.push("/");
   }
 
   return (
@@ -63,59 +91,69 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      First Name <span className="text-red-500">*</span>
-                    </label>
+                    <Label
+                      htmlFor="first_name"
+                      className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                    >
+                      first name <span className="text-red-500">*</span>
+                    </Label>
                     <Input
-                      placeholder="Ahmed"
-                      {...register("firstName", {
-                        required: "First name is required",
+                      id="first_name"
+                      type="text"
+                      placeholder="first name"
+                      className={`h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500  ${errors.first_name ? "border-red-500" : ""}`}
+                      {...register("first_name", {
+                        required: "first name is required",
                       })}
-                      className={`rounded-lg focus-visible:ring-primarygreen-500 ${
-                        errors.firstName ? "border-red-500" : ""
-                      }`}
                     />
-                    {errors.firstName && (
+                    {errors.first_name && (
                       <p className="text-red-500 text-xs mt-2">
-                        {errors.firstName.message}
+                        {errors.first_name.message}
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <Label
+                      htmlFor="last_name"
+                      className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                    >
                       Last Name <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <Input
-                      placeholder="Hassan"
-                      {...register("lastName", {
-                        required: "Last name is required",
+                      id="last_name"
+                      type="text"
+                      placeholder="last name"
+                      className={`h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500  ${errors.last_name ? "border-red-500" : ""}`}
+                      {...register("last_name", {
+                        required: "last name is required",
                       })}
-                      className={`rounded-lg focus-visible:ring-primarygreen-500 ${
-                        errors.lastName ? "border-red-500" : ""
-                      }`}
                     />
-                    {errors.lastName && (
+                    {errors.last_name && (
                       <p className="text-red-500 text-xs mt-2">
-                        {errors.lastName.message}
+                        {errors.last_name.message}
                       </p>
                     )}
                   </div>
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <Label
+                    htmlFor="customer_phone"
+                    className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                  >
                     Phone Number <span className="text-red-500">*</span>
-                  </label>
+                  </Label>
                   <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-primarygreen-500">
-                    <span className="px-3 text-sm font-medium text-foreground border-r border-border">
+                    <span className="px-3 text-sm font-medium  border-r border-border text-primarygreen-700">
                       +20
                     </span>
                     <Input
+                      id="customer_phone"
                       type="tel"
                       inputMode="numeric"
-                      placeholder="1012345678"
-                      {...register("phone", {
+                      placeholder="ex : 12 xxxxxxx"
+                      {...register("customer_phone", {
                         required: "Phone number is required",
                         pattern: {
                           value: /^1[0125][0-9]{8}$/,
@@ -123,14 +161,12 @@ export default function CheckoutPage() {
                             "Enter a valid Egyptian mobile number (10 digits after +20)",
                         },
                       })}
-                      className={`rounded-l-none border-0 focus-visible:ring-0 ${
-                        errors.phone ? "border-red-500" : ""
-                      }`}
+                      className={`h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500  ${errors.customer_phone ? "border-red-500" : ""}`}
                     />
                   </div>
-                  {errors.phone && (
+                  {errors.customer_phone && (
                     <p className="text-red-500 text-xs mt-2">
-                      {errors.phone.message}
+                      {errors.customer_phone.message}
                     </p>
                   )}
                 </div>
@@ -149,22 +185,42 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Governorate <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      {...register("governorate", {
-                        required: "Governorate is required",
-                      })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground text-sm focus:ring-2 focus:ring-primarygreen-500 focus:border-transparent outline-none transition"
+                    <Label
+                      htmlFor="governorate"
+                      className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
                     >
-                      <option value="">Select a governorate</option>
-                      {GOVERNORATES.map((gov) => (
-                        <option key={gov.id} value={gov.name}>
-                          {gov.name}
-                        </option>
-                      ))}
-                    </select>
+                      Governorate <span className="text-red-500">*</span>
+                    </Label>
+                    <Controller
+                      name="governorate"
+                      control={control}
+                      rules={{ required: "Governorate is required" }}
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger
+                            className={`w-full !h-11 sm:!h-12 px-4 text-sm bg-primarygreen-50 border border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500 rounded-md ${
+                              errors.governorate ? "border-red-500" : ""
+                            }`}
+                          >
+                            <SelectValue placeholder="Select a governorate" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GOVERNORATES.map((gov) => (
+                              <SelectItem
+                                key={gov.id}
+                                value={gov.name}
+                                className="focus:bg-primarygreen-50 focus:text-primarygreen-900"
+                              >
+                                {gov.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {errors.governorate && (
                       <p className="text-red-500 text-xs mt-2">
                         {errors.governorate.message}
@@ -173,15 +229,17 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <Label
+                      htmlFor="city"
+                      className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                    >
                       City <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <Input
-                      placeholder="Cairo"
+                      id="city"
+                      placeholder="maadi"
                       {...register("city", { required: "City is required" })}
-                      className={`rounded-lg focus-visible:ring-primarygreen-500 ${
-                        errors.city ? "border-red-500" : ""
-                      }`}
+                      className={`h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500  ${errors.city ? "border-red-500" : ""}`}
                     />
                     {errors.city && (
                       <p className="text-red-500 text-xs mt-2">
@@ -192,17 +250,19 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <Label
+                    htmlFor="Street"
+                    className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                  >
                     Street Address <span className="text-red-500">*</span>
-                  </label>
+                  </Label>
                   <Input
+                    id="Street"
                     placeholder="123 Tahrir St, Apartment 4B"
                     {...register("street", {
                       required: "Street address is required",
                     })}
-                    className={`rounded-lg focus-visible:ring-primarygreen-500 ${
-                      errors.street ? "border-red-500" : ""
-                    }`}
+                    className={`h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500  ${errors.street ? "border-red-500" : ""}`}
                   />
                   {errors.street && (
                     <p className="text-red-500 text-xs mt-2">
@@ -212,14 +272,17 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <Label
+                    htmlFor="notes"
+                    className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-primarygreen-500 pb-2"
+                  >
                     Delivery Notes
-                  </label>
+                  </Label>
                   <Textarea
                     rows={3}
                     placeholder="Any special instructions for delivery..."
                     {...register("notes")}
-                    className="resize-none rounded-lg focus-visible:ring-primarygreen-500"
+                    className="resize-none h-11 sm:h-12 px-4 text-sm bg-primarygreen-50 border-border placeholder:text-neutral-400/60 transition-all duration-200 focus-visible:ring-1 focus-visible:ring-primarygreen-500"
                   />
                 </div>
               </section>
@@ -266,7 +329,7 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                       <p className="text-foreground font-medium">
-                        ${(item.unit_price * item.quantity).toFixed(2)}
+                        {(item.unit_price * item.quantity).toFixed(2)} LE
                       </p>
                     </div>
                   ))
@@ -280,13 +343,13 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-neutral-400">Subtotal</span>
                   <span className="text-foreground font-medium">
-                    ${(subtotal || 0).toFixed(2)}
+                    {(subtotal || 0).toFixed(2)} LE
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-neutral-400">Shipping</span>
                   <span className="text-foreground font-medium">
-                    ${shippingFee.toFixed(2)}
+                    {shippingFee.toFixed(2)} LE
                   </span>
                 </div>
                 <div className="flex justify-between pt-3 border-t border-border">

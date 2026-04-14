@@ -129,8 +129,10 @@ export default function ClientProductView({ productId }) {
       sizeId: activeVariant.id,
       unit_price: product.price,
       discount: product.discount,
+      subtotal: priceAfterDiscount || product.price,
       images: product.images,
       stock_quantity: activeVariant.stock,
+
       quantity,
     };
 
