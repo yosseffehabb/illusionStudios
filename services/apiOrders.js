@@ -123,7 +123,7 @@ export async function getOrdersByPhone(phone) {
         customer_phone,
         status,
         total_price,
-        shipping_address,
+        customer_address,
         created_at,
         order_items (
           id,

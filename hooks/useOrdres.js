@@ -16,6 +16,7 @@ import {
   deleteOrder as deleteOrderAction,
   placeOrder,
   addOrder,
+  getOrderById,
 } from "@/services/apiOrders";
 import { orderKeys } from "@/lib/orderKeys";
 import { CACHE_TIMES } from "@/lib/constants";
@@ -430,36 +431,23 @@ export function usePlaceOrder() {
   });
 }
 
-// export function usePlaceOrder() {
-//   return useMutation({
-//     mutationFn: async (data) => {
-//       const address = `${data.street}, ${data.city}, ${data.governorate}`;
-//       const normalizedPhone = `+20${data.customer_phone}`;
-//       const fullname = `${data.first_name} ${data.last_name}`;
+/**
+ * Get single order by ID (Admin)
+ */
+export function useOrderById(orderId, options = {}) {
+  return useQuery({
+    queryKey: orderKeys.detail(orderId),
+    queryFn: async () => {
+      const result = await getOrderById(orderId);
 
-//       const mappedItems = data.items.map((item) => ({
-//         productId: item.product_id,
-//         size: item.size,
-//         quantity: item.quantity,
-//       }));
+      if (!result?.success) {
+        throw new Error(result?.error || "Order not found");
+      }
 
-//       const formStructure = {
-//         customer_name: fullname,
-//         customer_phone: normalizedPhone,
-//         customer_address: address,
-//         shipping_fee: data.shippingFee,
-//         notes: data.notes,
-//         items: mappedItems,
-//       };
-
-//       const result = await placeOrder(formStructure);
-
-//       if (!result?.success) {
-//         toast.error(result?.error || "error");
-//         throw new Error(result?.error || "Failed to place order");
-//       }
-
-//       return result.order;
-//     },
-//   });
-// }
+      return result.order;
+    },
+    enabled: (options.enabled ?? true) && !!orderId,
+    staleTime: CACHE_TIMES.ORDERS.STALE_TIME,
+    gcTime: CACHE_TIMES.ORDERS.GC_TIME,
+  });
+}

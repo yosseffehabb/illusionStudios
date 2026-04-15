@@ -1,75 +1,199 @@
 "use client";
 
-import { getOrderById } from "@/services/apiOrders";
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Package, Phone, MapPin, StickyNote } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useOrderById } from "@/hooks/useOrdres"; // adjust path as needed
+
+const statusConfig = {
+  pending: {
+    label: "Pending",
+    color: "bg-amber-100 text-amber-800 border-amber-200",
+  },
+  confirmed: {
+    label: "Confirmed",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+  },
+  out_for_delivery: {
+    label: "Out for Delivery",
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+  },
+  delivered: {
+    label: "Delivered",
+    color: "bg-green-100 text-green-800 border-green-200",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "bg-red-100 text-red-800 border-red-200",
+  },
+};
+
+function StatusBadge({ status }) {
+  const config = statusConfig[status] ?? {
+    label: status,
+    color: "bg-gray-100 text-gray-800 border-gray-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.color}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+        {label}
+      </span>
+      <span className="text-sm text-gray-900">{value || "—"}</span>
+    </div>
+  );
+}
 
 export default function AdminOrderDetailsSection() {
   const { id } = useParams();
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["order", id],
-    queryFn: () => getOrderById(id),
+  const { data: order, isLoading, error } = useOrderById(id);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
+          <span className="text-sm">Loading order...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <p className="text-gray-500 text-sm">
+            {error?.message || "Order not found"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const formattedDate = new Date(order.created_at).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
-  const orderDetails = data.order;
   return (
-    <div>
-      <Card className="bg-primarygreen-50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base  text-primarygreen-500">
-            Customer Information
-          </CardTitle>
-        </CardHeader>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Order #{order.order_number}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">{formattedDate}</p>
+        </div>
+        <StatusBadge status={order.status} />
+      </div>
 
-        <CardContent className="space-y-3">
-          {/* Name */}
-          <div className="flex items-start gap-3 text-sm">
-            <span className="text-muted-foreground mt-0.5">
-              <Package className="h-4 w-4 text-primarygreen-500" />
+      {/* Customer Info */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">
+          Customer Information
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <InfoRow label="Name" value={order.customer_name} />
+          <InfoRow label="Phone" value={order.customer_phone} />
+          <InfoRow label="Address" value={order.customer_address} />
+        </div>
+        {order.notes && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <InfoRow label="Notes" value={order.notes} />
+          </div>
+        )}
+      </div>
+
+      {/* Order Items */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-700">Order Items</h2>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Product
+              </th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Size
+              </th>
+              <th className="text-right px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Qty
+              </th>
+              <th className="text-right px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Unit Price
+              </th>
+              <th className="text-right px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Subtotal
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {order.order_items?.map((item) => (
+              <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-5 py-4">
+                  <div className="font-medium text-gray-900">
+                    {item.product_name}
+                  </div>
+                  {item.product_color && (
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {item.product_color}
+                    </div>
+                  )}
+                </td>
+                <td className="px-5 py-4 text-gray-600">{item.size}</td>
+                <td className="px-5 py-4 text-right text-gray-600">
+                  {item.quantity}
+                </td>
+                <td className="px-5 py-4 text-right text-gray-600">
+                  ${Number(item.unit_price).toFixed(2)}
+                </td>
+                <td className="px-5 py-4 text-right font-medium text-gray-900">
+                  ${Number(item.subtotal).toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Price Summary */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">
+          Price Summary
+        </h2>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span>
+              ${Number(order.subtotal ?? order.total_price).toFixed(2)}
             </span>
-            <div>
-              <p className="text-muted-foreground text-xs">Name</p>
-              <p className="text-foreground">{orderDetails.customer_name}</p>
-            </div>
           </div>
-
-          {/* Phone */}
-          <div className="flex items-start gap-3 text-sm">
-            <span className="text-muted-foreground mt-0.5">
-              <Phone className="h-4 w-4  text-primarygreen-500" />
-            </span>
-            <div>
-              <p className="text-muted-foreground text-xs">Phone</p>
-              <p className="text-foreground">{orderDetails.customer_phone}</p>
+          {order.shipping_fee != null && (
+            <div className="flex justify-between text-gray-600">
+              <span>Shipping</span>
+              <span>${Number(order.shipping_fee).toFixed(2)}</span>
             </div>
+          )}
+          <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-100">
+            <span>Total</span>
+            <span>${Number(order.total_price).toFixed(2)}</span>
           </div>
-
-          {/* Address */}
-          <div className="flex items-start gap-3 text-sm">
-            <span className="text-muted-foreground mt-0.5">
-              <MapPin className="h-4 w-4  text-primarygreen-500" />
-            </span>
-            <div>
-              <p className="text-muted-foreground text-xs">Address</p>
-              <p className="text-foreground">{orderDetails.customer_address}</p>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="flex items-start gap-3 text-sm">
-            <StickyNote className="h-4 w-4 text-primarygreen-500 mt-1" />
-            <div className="w-full">
-              <p className="text-xs text-muted-foreground">Notes</p>
-              <p className="bg-muted/40 rounded-md p-3 mt-1 whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
-                {orderDetails.notes || "—"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

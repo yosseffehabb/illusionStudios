@@ -4,22 +4,20 @@ import { useProductById } from "@/hooks/useProducts";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
-  Loader2,
   RotateCcw,
   ShieldCheckIcon,
   Truck,
-  Heart,
-  ChevronLeft,
   ZoomIn,
   Minus,
   Plus,
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useCallback } from "react";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+
 import { useCart } from "@/contexts/CartContext";
 import toast from "react-hot-toast";
+import ClientLoadingState from "./ClientLoadingState";
+import ClientErrorState from "./ClientErrorState";
 
 /* ─────────────────────────────────────────
    Stagger animation helpers
@@ -138,6 +136,7 @@ export default function ClientProductView({ productId }) {
 
     addItem(item);
     setAddedToCart(true);
+    setSelectedVariant(null);
     setTimeout(() => setAddedToCart(false), 1500);
   }
 
@@ -151,31 +150,16 @@ export default function ClientProductView({ productId }) {
 
   /* ── Loading ── */
   if (isProductLoading) {
-    return (
-      <div className="flex flex-col justify-center items-center py-24 gap-4">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-        <p className="text-xs tracking-[0.2em] uppercase text-muted-foreground">
-          Loading product
-        </p>
-      </div>
-    );
+    return <ClientLoadingState text="Loading Product" />;
   }
 
   /* ── Error ── */
   if (isProductError) {
     return (
-      <motion.div
-        {...fadeUp()}
-        className="mx-auto max-w-md mt-16 bg-red-50 border border-red-100 text-red-700 px-5 py-4 rounded-2xl flex items-start gap-3"
-      >
-        <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-        <div>
-          <p className="font-semibold text-sm">Failed to load product</p>
-          <p className="text-sm opacity-80 mt-0.5">
-            {isProductError.message || "An unexpected error occurred"}
-          </p>
-        </div>
-      </motion.div>
+      <ClientErrorState
+        errorHeading="Faild to Load Product"
+        errorBody="An error has ouccerd please go back or refresh your page"
+      />
     );
   }
 
@@ -310,7 +294,7 @@ export default function ClientProductView({ productId }) {
               <span className="text-[11px] tracking-[0.18em] uppercase text-primarygreen-700 font-semibold">
                 {product.category?.name ?? "Uncategorized"}
               </span>
-              <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
+              <span className="text-[11px] text-neutral-400 font-mono tracking-wide">
                 SKU: {product.sku}
               </span>
             </motion.div>
@@ -365,11 +349,7 @@ export default function ClientProductView({ productId }) {
               <motion.div {...fadeUp(0.24)} className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">Color:</span>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-5 h-5 rounded-full border-2 border-white ring-2 ring-primary/30 shadow-sm"
-                    style={{ backgroundColor: product.color.toLowerCase() }}
-                  />
-                  <span className="text-sm font-medium text-foreground capitalize">
+                  <span className="text-sm font-medium text-neutral-400 capitalize">
                     {product.color}
                   </span>
                 </div>
