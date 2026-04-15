@@ -8,7 +8,7 @@ import {
   sanitizePhone,
   isValidPhone,
 } from "@/lib/utils/orderHelpers";
-import { RATE_LIMITS, PAGINATION } from "@/lib/constants";
+import { RATE_LIMITS, PAGINATION, ORDER_STATUSES } from "@/lib/constants";
 
 // ============================================
 // AUTHENTICATION HELPER
@@ -518,6 +518,20 @@ export async function getOrderById(orderId) {
  */
 export async function updateOrderStatus(orderId, newStatus) {
   try {
+    if (!orderId) {
+      return {
+        success: false,
+        error: "Order ID is required",
+      };
+    }
+
+    if (!ORDER_STATUSES.includes(newStatus)) {
+      return {
+        success: false,
+        error: "Invalid order status",
+      };
+    }
+
     // Check admin authorization
     const auth = await checkAdminAuth();
     if (!auth.authorized) {

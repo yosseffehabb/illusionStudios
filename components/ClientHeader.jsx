@@ -20,7 +20,7 @@ function AdminHeader() {
     { label: "HOME", path: "/" },
     { label: "SHOP", path: "/shop" },
     { label: `CART [ ${totalItems} ]`, path: "shop/cart" },
-    { label: "SALE", path: "" },
+    { label: "Track your Order", path: "/shop/track-orders" },
     { label: "Contact", path: "" },
   ];
 

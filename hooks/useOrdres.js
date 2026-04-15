@@ -240,7 +240,7 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (orderId, newStatus) => {
+    mutationFn: async ({ orderId, newStatus }) => {
       const result = await updateOrderStatusAction(orderId, newStatus);
 
       if (!result?.success) {
@@ -250,7 +250,7 @@ export function useUpdateOrderStatus() {
       return result.order;
     },
 
-    onMutate: async (orderId, newStatus) => {
+    onMutate: async ({ orderId, newStatus }) => {
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: orderKeys.all });
 
@@ -314,10 +314,13 @@ export function useUpdateOrderStatus() {
       console.error("Failed to update order status:", error);
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       // Invalidate to sync with server
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
       queryClient.invalidateQueries({ queryKey: orderKeys.stats() });
+      queryClient.invalidateQueries({
+        queryKey: orderKeys.detail(variables?.orderId),
+      });
     },
   });
 }

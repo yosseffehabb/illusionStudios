@@ -1,7 +1,18 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useOrderById } from "@/hooks/useOrdres"; // adjust path as needed
+import { useEffect, useState } from "react";
+import { useOrderById, useUpdateOrderStatus } from "@/hooks/useOrdres";
+import { ORDER_STATUSES } from "@/lib/constants";
+import { formatStatus } from "@/lib/utils/orderHelpers";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const statusConfig = {
   pending: {
@@ -54,6 +65,33 @@ function InfoRow({ label, value }) {
 export default function AdminOrderDetailsSection() {
   const { id } = useParams();
   const { data: order, isLoading, error } = useOrderById(id);
+  const updateStatusMutation = useUpdateOrderStatus();
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [statusError, setStatusError] = useState("");
+  const [statusSuccess, setStatusSuccess] = useState("");
+
+  useEffect(() => {
+    if (order?.status) {
+      setSelectedStatus(order.status);
+    }
+  }, [order?.status]);
+
+  async function handleStatusUpdate() {
+    if (!selectedStatus || !order?.id) return;
+
+    setStatusError("");
+    setStatusSuccess("");
+
+    try {
+      await updateStatusMutation.mutateAsync({
+        orderId: order.id,
+        newStatus: selectedStatus,
+      });
+      setStatusSuccess("Order status updated successfully.");
+    } catch (err) {
+      setStatusError(err?.message || "Failed to update order status.");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -97,6 +135,45 @@ export default function AdminOrderDetailsSection() {
           <p className="text-sm text-gray-500 mt-1">{formattedDate}</p>
         </div>
         <StatusBadge status={order.status} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">
+          Update Order Status
+        </h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-full sm:w-[260px]">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {formatStatus(status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            onClick={handleStatusUpdate}
+            disabled={
+              !selectedStatus ||
+              selectedStatus === order.status ||
+              updateStatusMutation.isPending
+            }
+            className="w-full sm:w-auto"
+          >
+            {updateStatusMutation.isPending ? "Updating..." : "Update Status"}
+          </Button>
+        </div>
+
+        {statusError ? (
+          <p className="mt-3 text-sm text-red-600">{statusError}</p>
+        ) : null}
+        {statusSuccess ? (
+          <p className="mt-3 text-sm text-green-600">{statusSuccess}</p>
+        ) : null}
       </div>
 
       {/* Customer Info */}

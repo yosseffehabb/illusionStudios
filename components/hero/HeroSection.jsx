@@ -143,8 +143,8 @@ export function HeroSection() {
         {/* CTA Buttons */}
         <div className="flex flex-col gap-3 mt-14 md:mt-20 w-full max-w-xs">
           <SignatureButton text="Shop Now" path="/shop" />
+          <SignatureButton text="Track your Orders" path="/shop/track-orders" />
           <SignatureButton text="Contact us" path="/contact" />
-          <SignatureButton text="Size Charts" path="/size-charts" />
         </div>
       </div>
 

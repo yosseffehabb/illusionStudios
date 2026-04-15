@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 export default function ClientErrorState({
   errorHeading = "Error",
   errorBody = "An error occurred",
+  orderTrackerError,
 }) {
   return (
     <motion.div
@@ -22,7 +23,6 @@ export default function ClientErrorState({
           <p className="text-sm opacity-80 mt-0.5">{errorBody}</p>
         </div>
       </motion.div>
-      <GoBack />
     </motion.div>
   );
 }
